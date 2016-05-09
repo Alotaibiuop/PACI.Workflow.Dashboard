@@ -1,0 +1,342 @@
+﻿<link rel="import" href="../../custom_components/shared-styles/shared-styles.html">
+<link rel="import" href="../../custom_components/login-formlocalizationresources/login-formlocalizationresources.html" />
+
+<link rel="import" href="../../bower_components/iron-media-query/iron-media-query.html" />
+<link rel="import" href="../../bower_components/iron-localstorage/iron-localstorage.html" />
+<link rel="import" href="../../bower_components/iron-a11y-keys/iron-a11y-keys.html" />
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html" />
+
+<link rel="import" href="../../bower_components/paper-material/paper-material.html" />
+<link rel="import" href="../../bower_components/paper-toolbar/paper-toolbar.html" />
+<link rel="import" href="../../bower_components/paper-input/paper-input.html" />
+<link rel="import" href="../../bower_components/paper-button/paper-button.html" />
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html" />
+<link rel="import" href="../../bower_components/paper-fab/paper-fab.html" />
+
+<link rel="import" href="../../bower_components/neon-animation/neon-animation.html" />
+<link rel="import" href="../../bower_components/neon-animation/animations/scale-up-animation.html" />
+<link rel="import" href="../../bower_components/neon-animation/neon-animation-runner-behavior.html" />
+
+<dom-module id="login-form" >
+
+    <template>
+
+        <style include="shared-styles">
+
+        </style>
+
+        <style>
+            :host {
+                height: 100%;
+                background-color: #3F51B5;
+                @apply(--layout-center-justified);
+                @apply(--layout-horizontal);
+            }
+
+            paper-input, paper-button, #divLoginLabel {
+                min-width: 100%;
+                -webkit-tap-highlight-color: rgba(0,0,0,0);
+                -webkit-tap-highlight-color: transparent;
+            }
+        </style>
+
+        <login-formlocalizationresources id="lrLoginForm"
+                                         language="{{language}}"
+                                         on-load="initializeResources">
+        </login-formlocalizationresources>
+
+        <iron-media-query query="(min-width: 770px)"
+                          query-matches="{{islargescreen}}">
+        </iron-media-query>
+
+        <iron-localstorage name="user-profile"
+                           value="{{user}}"
+                           on-iron-localstorage-load-empty="handleEmptyUserProfileLocalStorage">
+        </iron-localstorage>
+
+        <iron-localstorage name="user-settings"
+                           value="{{settings}}"
+                           on-iron-localstorage-load="handleUserSettingsLocalStorageLoad">
+        </iron-localstorage>
+
+        <iron-a11y-keys id="iakLoginForm"
+                        keys="enter"
+                        on-keys-pressed="handleEnterKey">
+        </iron-a11y-keys>
+
+        <paper-material id="pmLoginFormContainer" class="bgcolorwhite ninja">
+
+            <paper-toolbar class$="{{toolbarclass}}">
+                <div class="flex textcenter">{{resources.loginheadertext}}<span class="sidepaddingby5 coloryellow">{{resources.version}}</span></div>
+                <div class="flex middle textcenter"><img src="../../images/LogoBig.png" width="80" height="80" /></div>
+                <div class="flex bottom"></div>
+                <paper-fab id="pfLogin" class="bottom bgcolorlightred sidemarginby2 margintopby60" icon="icons:lock" on-tap="handleLoginClick"></paper-fab>
+            </paper-toolbar>
+
+            <div class="marginby15">
+                <paper-input id="piUsername" label="{{resources.usernametext}}" value="{{username}}"></paper-input>
+                <paper-input id="piPassword" label="{{resources.passwordtext}}" type="password" value="{{password}}"></paper-input>
+                <paper-button id="pbLogin" class="margintopby15only" on-tap="handleLoginClick" raised>{{resources.loginbuttontext}}</paper-button>
+                <div class="textcenter"><paper-spinner id="psLoading" class="paddingtopby10"></paper-spinner></div>
+                <div id="divLoginLabel" class="textcenter minheightby30"></div>
+            </div>
+
+        </paper-material>
+
+    </template>
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "login-form",
+
+            behaviors: [Polymer.NeonAnimationRunnerBehavior],
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                },
+                islargescreen: {
+                    type: Boolean,
+                    observer: '_screenSizeChanged'
+                },
+                animationConfig: {
+                    value: function () {
+                        return {
+                            "entry": {
+                                name: "scale-up-animation",
+                                node: this.$.pmLoginFormContainer,
+                                timing: { duration: 800 }
+                            }
+                        }
+                    }
+                },
+                username: String,
+                password: String
+            },
+
+            attached: function () {
+
+                this.async(function () {
+
+                    this.$.iakLoginForm.target = document.body;
+
+                    this.$.pmLoginFormContainer.style.display = "inline-block";
+                    this.playAnimation("entry");
+
+                    this.initializeSOAP();
+
+                    if (Configuration.FastClick)
+                        FastClick.attach(this);
+                });
+            },
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    if (aLanguage == "ar") {
+
+                        this.style.setProperty("direction", "rtl");
+
+                        this.$.piUsername.noLabelFloat = true;
+                        this.$.piPassword.noLabelFloat = true;
+
+                        this.toggleClass("paddingtopby10", true, this.$.piUsername);
+                        this.toggleClass("paddingtopby10", true, this.$.piPassword);
+                    }
+                    else {
+
+                        this.style.setProperty("direction", "ltr");
+
+                        this.$.piUsername.noLabelFloat = false;
+                        this.$.piPassword.noLabelFloat = false;
+
+                        this.toggleClass("paddingtopby10", false, this.$.piUsername);
+                        this.toggleClass("paddingtopby10", false, this.$.piPassword);
+                    }
+                });
+            },
+
+            _screenSizeChanged: function () {
+
+                if (this.islargescreen) {
+
+                    this.$.pmLoginFormContainer.elevation = 3;
+                    this.$.pmLoginFormContainer.style.width = "40%";
+                    this.toolbarclass = "tall";
+                    this.centerForm(true);
+                }
+                else {
+
+                    this.$.pmLoginFormContainer.elevation = 0;
+                    this.$.pmLoginFormContainer.style.width = "100%";
+                    this.toolbarclass = "medium-tall";
+                    this.centerForm(false);
+                }
+            },
+
+            centerForm: function (aIsCentered) {
+
+                var Center = "";
+
+                if (aIsCentered) {
+
+                    Center = "center";
+                }
+
+                this.style.setProperty("-ms-flex-align", Center);
+                this.style.setProperty("-webkit-align-items", Center);
+                this.style.setProperty("align-items", Center);
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+            },
+
+            initializeSOAP: function () {
+
+                var Context = this;
+
+                $.soap({
+                    url: Configuration.ServerURL,
+                    appendMethodToURL: false,
+                    envAttributes: {
+                        "xmlns": "http://tempuri.org/",
+                        "xmlns:soap": "http://schemas.xmlsoap.org/soap/envelope/",
+                        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                        "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
+                        "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/",
+                        "xmlns:i": "http://www.w3.org/2001/XMLSchema-instance"
+                    },
+                    error: function (aSOAPResponse) {
+
+                        Context.$.psLoading.active = false;
+
+                        Context.toggleClass("colorgray", false, Context.$.divLoginLabel);
+                        Context.toggleClass("colorred", true, Context.$.divLoginLabel);
+                        Context.$.divLoginLabel.innerHTML = Context.resources.requestfailed;
+                    }
+                });
+            },
+
+            resetUser: function () {
+
+                this.user = {
+
+                    id: -1,
+                    username: "",
+                    name: "",
+                    isactive: false,
+                    isldap: false,
+                    authenticated: false
+                }
+            },
+
+            handleEmptyUserProfileLocalStorage: function () {
+
+                this.resetUser();
+            },
+
+            handleUserSettingsLocalStorageLoad: function () {
+
+                this.language = this.settings.language;
+            },
+
+            handleLoginClick: function () {
+
+                var Context = this;
+
+                if (Context.username && Context.password) {
+
+                    $.soap({
+                        method: 'Login', SOAPAction: Configuration.SOAPActionURL + '/Login',
+                        data: {
+                            UserName: Context.username,
+                            Password: Context.password,
+                            IsAutoLogin: false
+                        },
+                        beforeSend: function (SOAPEnvelope) {
+
+                            Context.$.psLoading.active = true;
+
+                            Context.toggleClass("colorgray", true, Context.$.divLoginLabel);
+                            Context.toggleClass("colorred", false, Context.$.divLoginLabel);
+                            Context.$.divLoginLabel.innerHTML = Context.resources.connecting;
+                        },
+                        success: function (aResponse) {
+
+                            Context.handleResponse(aResponse);
+                        }
+                    });
+                }
+                else {
+
+                    this.user = { name: "", authenticated: false };
+
+                    this.toggleClass("colorgray", false, this.$.divLoginLabel);
+                    this.toggleClass("colorred", true, this.$.divLoginLabel);
+                    this.$.divLoginLabel.innerHTML = this.resources.usernamepasswordrequired;
+                }
+            },
+
+            handleEnterKey: function () {
+
+                this.handleLoginClick();
+            },
+
+            handleResponse: function (aResponse) {
+
+                var OResult = aResponse.toJSON().Body.LoginResponse.LoginResult;
+
+                if (JSON.parse(OResult.IsSuccessful) == true && JSON.parse(OResult.IsLoginSuccessful) == true && JSON.parse(OResult.UserAccount.IsActive) == true) {
+
+                    var Privileges = $.grep(OResult.Privileges.PrivilegeBase, function (Privilege) { return Privilege.Name.toUpperCase() == "REPORTING"; });
+
+                    if (Privileges && Privileges.length > 0) {
+
+                        this.user = {
+
+                            id: OResult.UserAccount.ID,
+                            username: OResult.UserAccount.UserName,
+                            name: OResult.UserAccount.Name.toUpperCase(),
+                            isactive: OResult.UserAccount.IsActive,
+                            isldap: OResult.UserAccount.IsLDAP,
+                            authenticated: true
+                        }
+
+                        this.toggleClass("colorgray", true, this.$.divLoginLabel);
+                        this.toggleClass("colorred", false, this.$.divLoginLabel);
+                        this.$.divLoginLabel.innerHTML = this.resources.redirecting;
+
+                        this.fire("login-succeeded");
+                    }
+                    else {
+
+                        this.toggleClass("colorgray", false, this.$.divLoginLabel);
+                        this.toggleClass("colorred", true, this.$.divLoginLabel);
+                        this.$.divLoginLabel.innerHTML = this.resources.accessdenied;
+
+                        this.resetUser();
+                    }
+                }
+                else {
+
+                    this.toggleClass("colorgray", false, this.$.divLoginLabel);
+                    this.toggleClass("colorred", true, this.$.divLoginLabel);
+                    this.$.divLoginLabel.innerHTML = this.resources.invalidusernamepassword;
+
+                    this.resetUser();
+                }
+
+                this.$.psLoading.active = false;
+            }
+
+        });
+
+    </script>
+
+</dom-module>

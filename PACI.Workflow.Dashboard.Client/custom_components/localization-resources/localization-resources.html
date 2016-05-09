@@ -1,0 +1,207 @@
+﻿<dom-module id="localization-resources">
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "localization-resources",
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                }
+            },
+
+            attached: function () {
+
+                this.initializeLocalization();
+            },
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    this.initializeLocalization();
+                });
+            },
+
+            initializeLocalization: function () {
+
+                this.resources = {
+
+                    /* general */
+                    requestfailed: this.language == "ar" ? "لم يتم الإتصال" : "Unable to process request",
+                    connecting: this.language == "ar" ? "جاري الإتصال" : "Connecting",
+                    accessdenied: this.language == "ar" ? "لا يوجد صلاحية الدخول" : "Access denied",
+                    ok: this.language == "ar" ? "إتمام" : "OK",
+                    cancel: this.language == "ar" ? "إلغاء" : "Cancel",
+                    close: this.language == "ar" ? "إغلاق" : "Close",
+                    nodatafound: this.language == "ar" ? "لا توجد بيانات" : "No records found",
+                    nodatafoundonmap: this.language == "ar" ? "لا توجد بيانات على الخريطة" : "No records found on the map",
+                    reportnotimplemented: this.language == "ar" ? "هذا التقرير غير متوفر حاليا" : "Report not implemented",
+                    save: this.language == "ar" ? "حفظ" : "Save",
+                    required: this.language == "ar" ? "حقل إجباري" : "Required field",
+
+                    /* main-app */
+                    welcome: this.language == "ar" ? "مرحبا " : "Welcome, ",
+                    maindashboard: this.language == "ar" ? "اللوحة الرئيسية" : "Main Dashboard",
+
+                    /** menu **/
+                    performancereports: this.language == "ar" ? "تقارير الأداء" : "Performance Reports",
+                    allperformancereports: this.language == "ar" ? "جميع التقارير" : "All Reports",
+                    jobsperformancereports: this.language == "ar" ? "الطلبات" : "Job Performance",
+                    jobcategoriesperformancereports: this.language == "ar" ? "الإستمارات" : "Job Categories",
+                    jobtypesperformancereports: this.language == "ar" ? "أنواع الطلبات" : "Job Types",
+                    jobstatusesperformancereports: this.language == "ar" ? "حالات الطلبات" : "Job Statuses",
+                    areasperformancereports: this.language == "ar" ? "المناطق" : "Areas",
+                    employeesperformancereports: this.language == "ar" ? "الموظفين" : "Employees",
+                    fieldresearchersperformancereports: this.language == "ar" ? "الباحثين الميدانيين" : "Field Researchers",
+                    favorites: this.language == "ar" ? "المفضلة" : "Favorites",
+                    settings: this.language == "ar" ? "الإعدادات" : "Settings",
+                    logout: this.language == "ar" ? "خروج" : "Logout",
+
+                    /** cards **/
+                    dailyjobsperformance: this.language == "ar" ? "عدد الطلبات بالأيام" : "Daily Jobs",
+                    dailyjobsperformancedescription: this.language == "ar" ? "إعداد تقارير لعدد الطلبات بالأيام للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates daily jobs performance for employees, job categories, job types, job statuses or areas",
+                    jobcreatorsperformance: this.language == "ar" ? "أداء منشئي الطلبات" : "Job Creators",
+                    jobcreatorsperformancedescription: this.language == "ar" ? "إعداد تقارير أداء منشئي الطلبات للإستمارات أو أنواع الطلب أو حالات الطلب أو المناطق" : "Generates performance reports for job creators against categories, job types, job statuses or areas",
+                    jobcreatorsdetailedperformance: this.language == "ar" ? "أداء منشئي الطلبات التفصيلي" : "Job Creators Detailed",
+                    jobcreatorsdetailedperformancedescription: this.language == "ar" ? "إعداد تقارير أداء منشئي الطلبات التفصيلي للإستمارات أو أنواع الطلب أو حالات الطلب أو المناطق" : "Generates detailed performance reports for job creators against categories, job types, job statuses or areas",
+                    employeesperformance: this.language == "ar" ? "أداء الموظفين" : "Employees",
+                    employeesperformancedescription: this.language == "ar" ? "إعداد تقارير أداء الموظفين للإستمارات أو أنواع الطلب أو حالات الطلب أو المناطق" : "Generates employees performance against categories, job types, job statuses or areas",
+                    fieldresearchersperformance: this.language == "ar" ? "أداء الباحثيين الميدانيين" : "Field Researcher",
+                    fieldresearchersperformancedescription: this.language == "ar" ? "إعداد تقارير أداء الباحثين الميدانيين من حيث عدد الطلبات  المسندة من الموظفين أو الإستمارات أو أنواع الطلب أو حالات الطلب أو المناطق" : "Generates assigned jobs count for field researchers against employees, job categories, job types, job statuses or areas",
+                    dailyjobcategoriesperformance: this.language == "ar" ? "الإستمارات المستلمة بالأيام" : "Daily Job Categories",
+                    dailyjobcategoriesperformancedescription: this.language == "ar" ? "إعداد تقارير لعدد الطلبات حسب الإستمارة بالأيام للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates daily job categories performance for employees, job categories, job types, job statuses or areas",
+                    jobcategoriesperformance: this.language == "ar" ? "عدد الطلبات حسب الإستمارة" : "Job Categories",
+                    jobcategoriesperformancedescription: this.language == "ar" ? "إعداد تقارير لعدد الطلبات حسب الإستمارة للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates jobs count for job categories against employees, job categories, job types, job statuses or areas",
+                    jobcategorystatusperformance: this.language == "ar" ? "حالة الطلبات حسب الإستمارة" : "Job Categories Status",
+                    jobcategorystatusperformancedescription: this.language == "ar" ? "إعداد تقارير حالة الطلبات حسب الإستمارة للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates jobs count for job categories based on job statuses for employees, job categories, job types, job statuses or areas",
+                    jobcategoryprocessaverageperformance: this.language == "ar" ? "متوسط معدل الإنجاز حسب الإستمارة" : "Job Categories Average",
+                    jobcategoryprocessaverageperformancedescription: this.language == "ar" ? "إعداد تقارير لمتوسط معدل إنجاز الطلبات حسب الإستمارة للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates job categories average performance for employees, job categories, job types, job statuses or areas",
+                    dailyjobtypesperformance: this.language == "ar" ? "أنواع الطلبات المستلمة بالأيام" : "Daily Job Types",
+                    dailyjobtypesperformancedescription: this.language == "ar" ? "إعداد تقارير لعدد الطلبات حسب نوع الطلب بالأيام للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates daily job types performance for employees, job categories, job types, job statuses or areas",
+                    jobtypesperformance: this.language == "ar" ? "عدد الطلبات حسب نوع الطلب" : "Job Types",
+                    jobtypesperformancedescription: this.language == "ar" ? "إعداد تقارير لعدد الطلبات حسب نوع الطلب للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates jobs count for job types against employees, job categories, job types, job statuses or areas",
+                    jobtypestatusperformance: this.language == "ar" ? "حالة الطلبات حسب نوع الطلب" : " Job Types Status",
+                    jobtypestatusperformancedescription: this.language == "ar" ? "إعداد تقارير حالة الطلبات حسب نوع الطلب للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates jobs count for job types based on job statuses for employees, job categories, job types, job statuses or areas",
+                    jobtypeprocessaverageperformance: this.language == "ar" ? "متوسط معدل الإنجاز حسب نوع الطلب" : "Job Types Average",
+                    jobtypeprocessaverageperformancedescription: this.language == "ar" ? "إعداد تقارير لمتوسط معدل إنجاز الطلبات حسب نوع الطلب للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates job types average performance for employees, job categories, job types, job statuses or areas",
+                    jobstatusperformance: this.language == "ar" ? "عدد الطلبات حسب حالة الطلب" : "Job Statuses",
+                    jobstatusperformancedescription: this.language == "ar" ? "إعداد تقارير لعدد الطلبات حسب حالة الطلب للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates jobs count job statuses against job categories, job types, or areas",
+                    areaperformance: this.language == "ar" ? "عدد الطلبات حسب المنطقة" : "Areas",
+                    areaperformancedescription: this.language == "ar" ? "إعداد تقارير لعدد الطلبات حسب المنطقة للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates jobs count for areas against job categories, job types, or areas",
+                    areastatusperformance: this.language == "ar" ? "المنطقة حسب حالة الطلب" : "Areas Status",
+                    areastatusperformancedescription: this.language == "ar" ? "إعداد تقارير  أداء المنطقة حسب حالة الطلب للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates jobs count for areas based on job statuses against employees, job categories, job types, job statuses or areas",
+                    jobtypedetailedprocessaverageperformance: this.language == "ar" ? "متوسط معدل الإنجاز التفصيلي" : "Job Types Detailed Average",
+                    jobtypedetailedprocessaverageperformancedescription: this.language == "ar" ? "إعداد تقارير تفصيلية لمتوسط معدل إنجاز الطلبات حسب نوع الطلب للموظفين أو للإستمارات أو لأنواع الطلب أو لحالات الطلب أو للمناطق" : "Generates job types detailed average performance for employees, job categories, job types, job statuses or areas",
+
+                    /** settings **/
+                    language: this.language == "ar" ? "اللغة" : "Language",
+                    defaultreporttype: this.language == "ar" ? "الرسم البياني الأولي للتقارير" : "Default Report Output",
+                    initiallastdayscount: this.language == "ar" ? "عدد الأيام الأولي لإعداد التقارير" : "Default Report Period (Days)",
+                    dateformat: this.language == "ar" ? "صيغة التاريخ" : "Date Format",
+
+                    /* user-status */
+                    online: this.language == "ar" ? "متصل" : "Online",
+                    idle: this.language == "ar" ? "غير متصل" : "Away",
+
+                    /* report-filter */
+                    or: this.language == "ar" ? "أو" : "OR",
+                    datefrom: this.language == "ar" ? "من تاريخ" : "Date From",
+                    dateto: this.language == "ar" ? "إلى تاريخ" : "Date To",
+                    last: this.language == "ar" ? "آخر" : "Last",
+                    day: this.language == "ar" ? "يوم" : "Day",
+                    employees: this.language == "ar" ? "الموظفين" : "Employees",
+                    jobcategories: this.language == "ar" ? "الإستمارات" : "Job Categories",
+                    jobtypes: this.language == "ar" ? "نوع الطلبات" : "Job Types",
+                    jobstatuses: this.language == "ar" ? "حالات الطلب" : "Job Statuses",
+                    areas: this.language == "ar" ? "المناطق" : "Areas",
+                    area: this.language == "ar" ? "المنطقة" : "Area",
+                    generatereport: this.language == "ar" ? "إعداد التقرير" : "Generate Report",
+                    resetreport: this.language == "ar" ? "مسح الإعدادات" : "Reset",
+                    invaliddates: this.language == "ar" ? "الفترة الزمنية المختارة غير صحيحة" : "Invalid dates",
+
+                    /* dashboard-report */
+                    clncreationdate: this.language == "ar" ? "تاريخ الإنشاء" : "Creation Date",
+                    clntotaljobs: this.language == "ar" ? "عدد الطلبات" : "Total Jobs",
+                    jobaction: this.language == "ar" ? "العملية" : "Action",
+                    totaljobactions: this.language == "ar" ? "عدد العمليات" : "Total Actions",
+                    numofdays: this.language == "ar" ? "عدد الأيام" : "Number of Days",
+                    performancepercentage: this.language == "ar" ? "معدل أداء" : "Performance Percentage",
+                    clnaverageprocessperformance: this.language == "ar" ? "متوسط معدل الإنجاز بالأيام" : "Average (Days)",
+                    clnhighestaverageprocessperformance: this.language == "ar" ? "أعلى متوسط بالأيام" : "Max (Days)",
+                    clnlowestaverageprocessperformance: this.language == "ar" ? "أدنى متوسط بالأيام" : "Min (Days)",
+                    alljobs: this.language == "ar" ? "الكل" : "All",
+                    jobsdonewithin3days: this.language == "ar" ? "خلال 3 أيام" : "3 Days Less",
+                    jobsundonewithin3days: this.language == "ar" ? "أكثر من 3 أيام" : "3 Days More",
+                    tabularview: this.language == "ar" ? "الجدول" : "Tabular View",
+                    registeration: this.language == "ar" ? "التسجيل" : "Registeration",
+                    field: this.language == "ar" ? "الميدان" : "Field",
+                    followup: this.language == "ar" ? "مكتب المتابعة" : "Follow Up",
+                    qc: this.language == "ar" ? "المراجعة" : "QC",
+                    prepare: this.language == "ar" ? "التجهيز" : "Preparation",
+                    gis: this.language == "ar" ? "قسم الخرائط" : "GIS",
+                    registerationdrilldown: this.language == "ar" ? "تفاصيل التسجيل" : "Registeration Details",
+                    fielddrilldown: this.language == "ar" ? "تفاصيل الميدان" : "Field  Details",
+                    followupdrilldown: this.language == "ar" ? "تفاصيل مكتب المتابعة" : "Follow Up Details",
+                    qcdrilldown: this.language == "ar" ? "تفاصيل المراجعة" : "QC Details",
+                    preparedrilldown: this.language == "ar" ? "تفاصيل التجهيز" : "Preparation Details",
+                    gisdrilldown: this.language == "ar" ? "تفاصيل قسم الخرائط" : "GIS Details",
+                    reviewattachment: this.language == "ar" ? "مطلوب مراجعة المرفقات - الشهادات" : "Review Attachment",
+                    rejected: this.language == "ar" ? "مرفوض" : "Rejected",
+                    workindinfield: this.language == "ar" ? "جاري العمل في الميدان - المتابعة" : "Working In Field",
+                    moreedits: this.language == "ar" ? "تعديلات إضافية - المتابعة" : "More Edits",
+                    reassignment: this.language == "ar" ? "مطلوب إعادة الإرسال - المتابعة" : "Reassignment",
+                    fieldsecondvisit: this.language == "ar" ? "مطلوب زيارة ميدانية ثانية - المتابعة" : "Requires Second Field Visit",
+                    workingdoneinfield: this.language == "ar" ? "انتهى العمل في الميدان - المراجعة" : "Working Done In Field",
+                    newjob: this.language == "ar" ? "طلب جديد" : "New Job Request",
+                    forqc: this.language == "ar" ? "للتدقيق - المراجعة" : "For QC",
+                    nomoredits: this.language == "ar" ? "التعديلات مقبولة - المراجعة" : "No More Edits",
+                    parcelrequired: this.language == "ar" ? "مطلوب إضافة قسيمة - قسم الخرائط" : "Add Parcel Required",
+                    favoritetitle: this.language == "ar" ? "عنوان التقرير" : "Title",
+                    favoritedescription: this.language == "ar" ? "تفاصيل التقرير" : "Description",
+
+                    /* main-dashboard */
+                    alltimetotaljobs: this.language == "ar" ? "عدد الطلبات الإجمالي" : "Total Jobs",
+                    alltimeactivetotaljobs: this.language == "ar" ? "عدد الطلبات الفعالة" : "Active Jobs",
+                    alltimeclosedtotaljobs: this.language == "ar" ? "عدد الطلبات المنتهية" : "Closed Jobs",
+                    alltimetopworkingarea: this.language == "ar" ? "أعلى عدد طلبات في منطقة" : "Top Working Area",
+                    alltimetopfieldresearcher: this.language == "ar" ? "أكبر عدد طلبات مسندة" : "Top Assigned Field Researcher",
+                    alltimejobsperformance: this.language == "ar" ? "الأداء الإجمالي للطلبات" : "Jobs Performance",
+                    active: this.language == "ar" ? "الفعالة" : "Active",
+                    closed: this.language == "ar" ? "المنتهية" : "Closed",
+                    today: this.language == "ar" ? "اليوم" : "Today",
+                    yesterday: this.language == "ar" ? "يوم أمس" : "Yesterday",
+                    last30days: this.language == "ar" ? "الشهر الماضي" : "Last Month",
+                    alltimes: this.language == "ar" ? "الكل" : "All",
+                    totaljobsactive: this.language == "ar" ? "عدد الطلبات الجديدة السارية" : "Total Active Jobs",
+                    totaljobsclosed: this.language == "ar" ? "عدد الطلبات المنتهية" : "Total Closed Jobs",
+                    totaljobsrejected: this.language == "ar" ? "عدد الطلبات المرفوضة" : "Total Rejected Jobs",
+                    averageperformance: this.language == "ar" ? "مجموع معدل الإنجاز" : "Total Average Performance",
+                    topcreatorsperformance: this.language == "ar" ? "منشئي الطلبات الأكثر نشاطا" : "Top Jobs Creators",
+                    topareasperformance: this.language == "ar" ? "المناطق الأكثر نشاطا" : "Top Areas",
+                    topassginedfieldresearchersperformance: this.language == "ar" ? "عدد الطلبات المسندة للباحثيين" : "Top Assigned Field Researchers",
+                    establishmentsaverageperformance: this.language == "ar" ? "معدل أداء الجهات" : "Establishments Average Performance",
+                    addressesaverageperformance: this.language == "ar" ? "معدل أداء العناوين" : "Addresses Average Performance",
+                    boundaryupdateaverageperformance: this.language == "ar" ? "معدل أداء تجديد الإطار" : "Boundary Update Average Performance",
+                    residencesaverageperformance: this.language == "ar" ? "معدل أداء القاطنين" : "Residences Average Performance",
+
+                    /* esri-map */
+                    mapnotloaded: this.language == "ar" ? "لا يمكن تحميل الخريطة" : "Could not load map",
+                    lastseen: this.language == "ar" ? "آخر ظهور" : "LAST SEEN",
+                    active: this.language == "ar" ? "منذ أقل من 10 دقائق" : "Less than 10 minutes ago",
+                    parking: this.language == "ar" ? "توقف مؤقت" : "Stopped for a while",
+                    waiting: this.language == "ar" ? "غير نشط خلال الساعات السابقة" : "Inactive for hours",
+                    inactive: this.language == "ar" ? "غير نشط منذ أكثر من 24 ساعة" : "Inactive for more than 24 hours",
+                }
+
+                this.fire("load", { resources: this.resources });
+            }
+
+        });
+
+    </script>
+
+</dom-module>

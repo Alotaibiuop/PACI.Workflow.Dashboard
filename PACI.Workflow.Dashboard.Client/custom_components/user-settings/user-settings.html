@@ -1,0 +1,130 @@
+﻿<dom-module id="user-settings">
+
+    <template>
+
+        <style include="shared-styles">
+
+        </style>
+
+        <localization-resources language="{{language}}"
+                                on-load="initializeResources">
+        </localization-resources>
+
+        <iron-localstorage name="user-settings"
+                           value="{{settings}}"
+                           on-iron-localstorage-load-empty="handleEmptyUserSettingsLocalStorage"
+                           on-iron-localstorage-load="handlePopulateUserSettings">
+        </iron-localstorage>
+
+        <paper-toolbar class="zindexby100">
+            <paper-icon-button id="pibCloseUserSettings" class="middle" icon="arrow-back" on-tap="handleToolbarCloseButton"></paper-icon-button>
+            <div class="middle title">{{resources.settings}}</div>
+            <div class="middle flex horizontal end-justified layout">
+                <paper-fab class="margintopfab bgcolorlightgreen" icon="icons:save" on-tap="handleToolbarSaveButton" mini></paper-fab>
+            </div>
+        </paper-toolbar>
+
+        <div class="separatorsettings">
+            <h5>{{resources.language}}</h5>
+            <paper-radio-group id="prgLanguage">
+                <paper-radio-button name="ar"><span class="sidemarginby10">العربية</span></paper-radio-button>
+                <paper-radio-button name="en"><span class="sidemarginby10">English</span></paper-radio-button>
+            </paper-radio-group>
+        </div>
+
+        <div class="separatorsettings">
+            <h5>{{resources.initiallastdayscount}}</h5>
+            <paper-radio-group id="prgInitialLastDaysCount">
+                <paper-radio-button name="7"><span class="sidemarginby10">7</span></paper-radio-button>
+                <paper-radio-button name="30"><span class="sidemarginby10">30</span></paper-radio-button>
+                <paper-radio-button name="60"><span class="sidemarginby10">60</span></paper-radio-button>
+                <paper-radio-button name="90"><span class="sidemarginby10">90</span></paper-radio-button>
+            </paper-radio-group>
+        </div>
+
+    </template>
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "user-settings",
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                }
+            },
+
+            attached: function () {
+
+                if (Configuration.FastClick)
+                    FastClick.attach(this);
+            },
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    if (aLanguage == "ar") {
+
+                        this.$.pibCloseUserSettings.setAttribute("icon", "arrow-forward");
+
+                        this.style.setProperty("direction", "rtl");
+                    }
+                    else {
+
+                        this.$.pibCloseUserSettings.setAttribute("icon", "arrow-back");
+
+                        this.style.setProperty("direction", "ltr");
+                    }
+                });
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+            },
+
+            handlePopulateUserSettings: function () {
+
+                this.$.prgLanguage.selected = this.settings.language;
+                this.$.prgInitialLastDaysCount.selected = this.settings.initiallastdayscount;
+            },
+
+            handleToolbarSaveButton: function () {
+
+                var Language = this.$.prgLanguage.selected;
+                var InitialLastDaysCount = this.$.prgInitialLastDaysCount.selected;
+
+                this.settings = { language: Language, defaultreporttype: "bar", initiallastdayscount: InitialLastDaysCount, dateformat: "YYYY/MM/DD" };
+
+                this.fire("usersettings-changed", this.settings);
+            },
+
+            handleToolbarCloseButton: function () {
+
+                this.fire("close-clicked", null);
+            },
+
+            handleEmptyUserSettingsLocalStorage: function () {
+
+                this.settings = {
+
+                    language: "en",
+                    defaultreporttype: "bar",
+                    initiallastdayscount: 7,
+                    dateformat: "YYYY/MM/DD"
+                };
+
+                this.handlePopulateUserSettings();
+
+                this.fire("usersettings-changed", this.settings);
+            }
+
+        });
+
+    </script>
+
+</dom-module>

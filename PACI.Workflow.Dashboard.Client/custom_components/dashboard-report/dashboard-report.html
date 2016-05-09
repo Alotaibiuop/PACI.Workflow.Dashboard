@@ -1,0 +1,2237 @@
+<dom-module id="dashboard-report">
+
+    <template>
+
+        <style include="shared-styles">
+
+        </style>
+
+        <localization-resources language="{{language}}"
+                                on-load="initializeResources">
+        </localization-resources>
+
+        <iron-localstorage name="user-favorites"
+                           value="{{rawuserfavorites}}"
+                           on-iron-localstorage-load-empty="handleEmptyUserFavoritesLocalStorage"
+                           use-raw="true">
+        </iron-localstorage>
+
+        <iron-media-query query="(min-width: 770px)"
+                          query-matches="{{islargescreen}}">
+        </iron-media-query>
+
+        <neighborhoods-lookup id="neighborhoodsLookup"
+                              on-load="handleNeighborhoodsLookupLoad">
+        </neighborhoods-lookup>
+
+        <paper-toolbar id="ptDashboardReport" class="zindexby100">
+            <paper-icon-button id="pibBackDashboardReport" class="middle" icon="arrow-back" on-tap="handleToolbarBackClick"></paper-icon-button>
+            <div class="middle title flex">{{report.reportsubtitle}}</div>
+            <paper-fab class="middle bgcolorlightgreen sidemarginby2" icon="assessment" outputtype="Bar" on-tap="handleChangeReportType" mini></paper-fab>
+            <paper-fab id="pfLine" class="middle bgcolorlightgreen sidemarginby2" icon="image:broken-image" outputtype="Line" on-tap="handleChangeReportType" mini></paper-fab>
+            <paper-fab id="pfPie" class="middle bgcolorlightgreen sidemarginby2" icon="image:camera" outputtype="Pie" on-tap="handleChangeReportType" mini></paper-fab>
+            <paper-fab id="pfStackBar" class="middle bgcolorlightgreen sidemarginby2" icon="icons:view-day" outputtype="StackBar" on-tap="handleChangeReportType" mini></paper-fab>
+            <paper-fab class="middle bgcolorlightgreen sidemarginby2" icon="image:tune" on-tap="handleShowFilter" mini></paper-fab>
+            <paper-fab class="middle bgcolorlightred sidemarginby2" icon="icons:favorite" on-tap="handleToggleFavoriteView" mini></paper-fab>
+        </paper-toolbar>
+
+        <paper-material id="pmAddFavorite" class="paddingby15paddingtopby35">
+
+            <div class="flex paddingby15">
+                <paper-input id="piFavoriteName" class="flex" maxlength="25" char-counter="true" label="{{resources.favoritetitle}}"></paper-input>
+                <paper-input id="piFavoriteDescription" class="flex" maxlength="120" char-counter="true" label="{{resources.favoritedescription}}">
+                    <div suffix>
+                        <paper-icon-button class="colorpolymerblue" icon="save" on-tap="handleSaveFavorite"></paper-icon-button>
+                    </div>
+                </paper-input>
+            </div>
+
+        </paper-material>
+
+        <iron-collapse id="icReportFilterCriteria">
+            <paper-material class="paddingby15paddingtopby35" elevation="1">
+                <h5>{{resources.datefrom}}</h5>
+                <div class="colorgray"><iron-icon icon="image:timer" class="sidemarginby15"></iron-icon>{{datefrom}}</div>
+                <h5>{{resources.dateto}}</h5>
+                <div class="colorgray"><iron-icon icon="image:timer" class="sidemarginby15"></iron-icon>{{dateto}}</div>
+                <h5>{{resources.employees}}</h5>
+                <template is="dom-repeat" items="{{filtercriteria.selectedemployees.LookupItem}}">
+                    <div class="colorgray"><iron-icon icon="social:person" class="sidemarginby15"></iron-icon>{{item.Name}}</div>
+                </template>
+                <h5>{{resources.jobcategories}}</h5>
+                <template is="dom-repeat" items="{{filtercriteria.selectedjobcategories.LookupItem}}">
+                    <div class="colorgray"><iron-icon icon="icons:class" class="sidemarginby15"></iron-icon>{{item.Name}}</div>
+                </template>
+                <h5>{{resources.jobtypes}}</h5>
+                <template is="dom-repeat" items="{{filtercriteria.selectedjobtypes.LookupItem}}">
+                    <div class="colorgray"><iron-icon icon="icons:chrome-reader-mode" class="sidemarginby15"></iron-icon>{{item.Name}}</div>
+                </template>
+                <h5>{{resources.jobstatuses}}</h5>
+                <template is="dom-repeat" items="{{filtercriteria.selectedjobstatuses.LookupItem}}">
+                    <div class="colorgray"><iron-icon icon="icons:flag" class="sidemarginby15"></iron-icon>{{item.Name}}</div>
+                </template>
+                <h5>{{resources.areas}}</h5>
+                <template is="dom-repeat" items="{{filtercriteria.selectedareas.LookupItem}}">
+                    <div class="colorgray"><iron-icon icon="maps:place" class="sidemarginby15"></iron-icon>{{item.Name}}</div>
+                </template>
+            </paper-material>
+        </iron-collapse>
+
+        <paper-tabs id="ptJobsAveragePerformanceFilter" selected="{{selectedtab}}" class="selectedtab" noink>
+            <paper-tab reporttypeid="0" on-tap="handlePaperTabClick">{{resources.alljobs}}</paper-tab>
+            <paper-tab reporttypeid="1" on-tap="handlePaperTabClick">{{resources.jobsdonewithin3days}}</paper-tab>
+            <paper-tab reporttypeid="2" on-tap="handlePaperTabClick">{{resources.jobsundonewithin3days}}</paper-tab>
+        </paper-tabs>
+
+        <div id="divChart" class="paddingby15paddingtopby35">
+
+        </div>
+
+        <esri-map id="esriMapDashboardReport" language="{{language}}" mapid="esrimapdashboardreport" height="600" on-esrimapdashboardreport-load="handleESRIMapLoad">
+
+        </esri-map>
+
+        <div style="width: 100%; padding: 20px;">
+            <table id="dataTable" class="table tablePadding table-striped table-bordered" style="width: 100%;"></table>
+        </div>
+
+    </template>
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "dashboard-report",
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                },
+                islargescreen: {
+                    type: Boolean,
+                    observer: '_screenSizeChanged'
+                },
+                report: {
+                    type: Object
+                },
+                dateformat: {
+                    type: String
+                },
+                rawuserfavorites: {
+                    type: String
+                },
+                neighborhoodsloaded: {
+                    type: Boolean
+                },
+                dashboardreportmaploaded: {
+                    type: Boolean
+                },
+                topareas: {
+                    type: Object
+                }
+            },
+
+            attached: function () {
+
+                this.$.esriMapDashboardReport.configuration.mapurl = Configuration.MapURL;
+                this.$.esriMapDashboardReport.configuration.satellitemapurl = Configuration.SatelliteMapURL;
+                this.$.esriMapDashboardReport.spatialReference = { "wkid": 102100 };
+
+                if (Configuration.FastClick)
+                    FastClick.attach(this);
+            },
+
+            observers: [
+                "ZoomAndClassBreakTopAreas(neighborhoodsloaded, dashboardreportmaploaded, topareas)"
+            ],
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    if (aLanguage == "ar") {
+
+                        this.$.piFavoriteName.noLabelFloat = true;
+                        this.toggleClass("paddingtopby10", true, this.$.piFavoriteName);
+
+                        this.$.piFavoriteDescription.noLabelFloat = true;
+                        this.toggleClass("paddingtopby10", true, this.$.piFavoriteDescription);
+
+                        this.$.pibBackDashboardReport.setAttribute("icon", "arrow-forward");
+
+                        this.$.divChart.style.setProperty("direction", "ltr");
+                        this.style.setProperty("direction", "rtl");
+                    }
+                    else {
+
+                        this.$.piFavoriteName.noLabelFloat = false;
+                        this.toggleClass("paddingtopby10", false, this.$.piFavoriteName);
+
+                        this.$.piFavoriteDescription.noLabelFloat = false;
+                        this.toggleClass("paddingtopby10", false, this.$.piFavoriteDescription);
+
+                        this.$.pibBackDashboardReport.setAttribute("icon", "arrow-back");
+
+                        this.$.divChart.style.setProperty("direction", "ltr");
+                        this.style.setProperty("direction", "ltr");
+                    }
+                });
+            },
+
+            _screenSizeChanged: function () {
+
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+            },
+
+            initializeDashboardReport: function () {
+
+                this.$.esriMapDashboardReport.hidden = true;
+
+                this.$.pmAddFavorite.hidden = true;
+                this.$.pfLine.hidden = false;
+                this.$.pfPie.hidden = true;
+                this.$.pfStackBar.hidden = true;
+                this.$.ptJobsAveragePerformanceFilter.hidden = true;
+
+                this.toggleToolbarPaperFabMargin(true);
+            },
+
+            toggleToolbarPaperFabMargin: function (aToggle) {
+
+                var ToolbarPaperFabs = this.$.ptDashboardReport.querySelectorAll("paper-fab");
+                for (var i = 0; i < ToolbarPaperFabs.length; i++) {
+
+                    this.toggleClass("margintopfab", aToggle, ToolbarPaperFabs[i]);
+                }
+            },
+
+            bindReport: function (aReport) {
+
+                var gridData = [];
+                var columnHeadings = [];
+
+                var Categories = [];
+                var Series = [];
+                var DrillDowns = [];
+
+                this.report = aReport;
+                this.filtercriteria = aReport.filtercriteria;
+
+                if (aReport.isfavorite == true && aReport.filtercriteria.isdaterange == false) {
+
+                    this.datefrom = moment().subtract(parseInt(aReport.filtercriteria.lastnumdays), 'days').startOf('day').format(this.dateformat);
+                    this.dateto = moment().format(this.dateformat);
+                }
+                else {
+
+                    this.datefrom = moment(aReport.filtercriteria.datefrom).format(this.dateformat);
+                    this.dateto = moment(aReport.filtercriteria.dateto).format(this.dateformat);
+                }
+
+                this.destroySourceTable();
+
+                this.async(function () {
+
+                    this.initializeDashboardReport();
+
+                    var ChartTitle = { text: this.report.reporttitle, style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "20px;" } };
+                    var ChartSubTitle = { text: this.report.reportsubtitle, style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "16px;" } };
+
+                    if (this.report.targetreportoperation == "GetDailyPerformanceReport") {
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat)) < 0) {
+
+                                Categories.push(moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            var dateformatted = moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat);
+                            gridData.push([dateformatted, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.clncreationdate }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetDailyJobCategoryPerformanceReport") {
+
+                        this.$.pfStackBar.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat)) < 0) {
+
+                                Categories.push(moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].JobCategoryName,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aReport.data.DataSource[i].JobCategoryName.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aReport.data.DataSource[i].JobCategoryName,
+                                        data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat), aReport.data.DataSource[i].JobCategoryName, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.clncreationdate }, { title: this.resources.jobcategories }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "STACKBAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetDailyJobTypePerformanceReport") {
+
+                        this.$.pfStackBar.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat)) < 0) {
+
+                                Categories.push(moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].JobTypeName,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aReport.data.DataSource[i].JobTypeName.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aReport.data.DataSource[i].JobTypeName,
+                                        data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([moment(aReport.data.DataSource[i].CreationDate).format(this.dateformat), aReport.data.DataSource[i].JobTypeName, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.clncreationdate }, { title: this.resources.jobtypes }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "STACKBAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetJobCategoryPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [{ name: aReport.data.DataSource[i].JobCategoryName, y: parseInt(aReport.data.DataSource[i].JobsCount) }]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push({ name: aReport.data.DataSource[i].JobCategoryName, y: parseInt(aReport.data.DataSource[i].JobsCount) });
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].JobCategoryName, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.jobcategories }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            var TotalJobs = 0;
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                TotalJobs += parseInt(aReport.data.DataSource[i].JobsCount)
+                            }
+
+                            var PieData = [];
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                PieData.push({
+                                    name: aReport.data.DataSource[i].JobCategoryName,
+                                    y: parseFloat(aReport.data.DataSource[i].JobsCount / TotalJobs)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetJobTypePerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].JobTypeName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].JobTypeName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                Series[0].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].JobTypeName, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.jobtypes }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+
+                            var TotalJobs = 0;
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                TotalJobs += parseInt(aReport.data.DataSource[i].JobsCount)
+                            }
+
+                            var PieData = [];
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                PieData.push({
+                                    name: aReport.data.DataSource[i].JobTypeName,
+                                    y: parseFloat(aReport.data.DataSource[i].JobsCount / TotalJobs)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetJobCategoryStatusPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfStackBar.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].JobCategoryName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].JobCategoryName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].JobStatus,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aReport.data.DataSource[i].JobStatus.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aReport.data.DataSource[i].JobStatus,
+                                        data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+                            gridData.push([aReport.data.DataSource[i].JobCategoryName, aReport.data.DataSource[i].JobStatus, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.jobcategories }, { title: this.resources.jobstatuses }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "STACKBAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetJobTypeStatusPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfStackBar.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].JobTypeName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].JobTypeName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].JobStatus,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aReport.data.DataSource[i].JobStatus.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aReport.data.DataSource[i].JobStatus,
+                                        data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].JobTypeName, aReport.data.DataSource[i].JobStatus, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.jobtypes }, { title: this.resources.jobstatuses }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "STACKBAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetOfficeUsersPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].UserFullName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].UserFullName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].UserFullName, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.employees }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            var TotalJobs = 0;
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                TotalJobs += parseInt(aReport.data.DataSource[i].JobsCount)
+                            }
+
+                            var PieData = [];
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                PieData.push({
+                                    name: aReport.data.DataSource[i].UserFullName,
+                                    y: parseFloat(aReport.data.DataSource[i].JobsCount / TotalJobs)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetOfficeUsersPerformanceDetailedReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfStackBar.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].UserFullName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].UserFullName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].JobTypeName,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aReport.data.DataSource[i].JobTypeName.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aReport.data.DataSource[i].JobTypeName,
+                                        data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].UserFullName, aReport.data.DataSource[i].JobTypeName, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        coloumHeadings = [{ title: this.resources.employees }, { title: this.resources.jobtypes }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, coloumHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "STACKBAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetOfficeUsersPerformanceDetailed") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfStackBar.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].UserFullName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].UserFullName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].JobAction,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aReport.data.DataSource[i].JobAction.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aReport.data.DataSource[i].JobAction,
+                                        data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].UserFullName, aReport.data.DataSource[i].JobAction, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        coloumHeadings = [{ title: this.resources.employees }, { title: this.resources.jobaction }, { title: this.resources.totaljobactions }];
+
+                        this.loadDataTable(gridData, coloumHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.totaljobactions;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "STACKBAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.totaljobactions;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetAreaPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+                        this.$.esriMapDashboardReport.hidden = false;
+
+                        this.topareas = aReport.data.DataSource.sort(function (a, b) {
+
+                            return parseInt(b.JobsCount) - parseInt(a.JobsCount);
+                        });
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].AreaName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].AreaName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].AreaName, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.areas }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            var TotalJobs = 0;
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                TotalJobs += parseInt(aReport.data.DataSource[i].JobsCount)
+                            }
+
+                            var PieData = [];
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                PieData.push({
+                                    name: aReport.data.DataSource[i].AreaName,
+                                    y: parseFloat(aReport.data.DataSource[i].JobsCount / TotalJobs)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetStatusPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].Status) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].Status);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                Series[0].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].Status, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.jobstatuses }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            var TotalJobs = 0;
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                TotalJobs += parseInt(aReport.data.DataSource[i].JobsCount)
+                            }
+
+                            var PieData = [];
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                PieData.push({
+                                    name: aReport.data.DataSource[i].Status,
+                                    y: parseFloat(aReport.data.DataSource[i].JobsCount / TotalJobs)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetAreaByStatusPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfStackBar.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].AreaName) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].AreaName);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].Status,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aReport.data.DataSource[i].Status.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aReport.data.DataSource[i].Status,
+                                        data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].AreaName, aReport.data.DataSource[i].Status, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.areas }, { title: this.resources.jobstatuses }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "STACKBAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetFieldResearcherPerformanceReport") {
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aReport.data.DataSource[i].FieldResearcher) < 0) {
+
+                                Categories.push(aReport.data.DataSource[i].FieldResearcher);
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [parseInt(aReport.data.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                Series[0].data.push(parseInt(aReport.data.DataSource[i].JobsCount));
+                            }
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([aReport.data.DataSource[i].FieldResearcher, parseInt(aReport.data.DataSource[i].JobsCount)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.employees }, { title: this.resources.clntotaljobs }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.clntotaljobs;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            var TotalJobs = 0;
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                TotalJobs += parseInt(aReport.data.DataSource[i].JobsCount)
+                            }
+
+                            var PieData = [];
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                PieData.push({
+                                    name: aReport.data.DataSource[i].FieldResearcher,
+                                    y: parseFloat(aReport.data.DataSource[i].JobsCount / TotalJobs)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetJobCategoryAvgPerformanceReportSummary") {
+
+                        var FilteredDataSource = [];
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+                        this.$.ptJobsAveragePerformanceFilter.hidden = false;
+
+                        this.toggleToolbarPaperFabMargin(false);
+
+                        switch (this.report.reporttypeid) {
+                            case "0":
+                                this.selectedtab = 0;
+                                break;
+                            case "1":
+                                this.selectedtab = 1;
+                                break;
+                            case "2":
+                                this.selectedtab = 2;
+                                break;
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (aReport.data.DataSource[i].TypeID == aReport.reporttypeid) {
+
+                                FilteredDataSource.push(aReport.data.DataSource[i]);
+                            }
+                        }
+
+                        for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                            if (Categories.indexOf(FilteredDataSource[i].JobCategoryName)) {
+
+                                Categories.push(FilteredDataSource[i].JobCategoryName);
+                            }
+                        }
+
+                        for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clnaverageprocessperformance,
+                                    data: [parseFloat(FilteredDataSource[i].JobAvg)]
+                                });
+
+                                Series.push({
+                                    name: this.resources.clnhighestaverageprocessperformance,
+                                    data: [parseFloat(FilteredDataSource[i].JobMax)]
+                                });
+
+                                Series.push({
+                                    name: this.resources.clnlowestaverageprocessperformance,
+                                    data: [parseFloat(FilteredDataSource[i].JobMin)]
+                                });
+                            }
+                            else {
+
+                                Series[0].data.push(parseFloat(FilteredDataSource[i].JobAvg));
+                                Series[1].data.push(parseFloat(FilteredDataSource[i].JobMax));
+                                Series[2].data.push(parseFloat(FilteredDataSource[i].JobMin));
+                            }
+                        }
+
+                        for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                            gridData.push([FilteredDataSource[i].JobCategoryName, parseInt(FilteredDataSource[i].JobsCount), parseFloat(FilteredDataSource[i].JobAvg), parseFloat(FilteredDataSource[i].JobMax), parseFloat(FilteredDataSource[i].JobMin)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.jobcategories }, { title: this.resources.clntotaljobs }, { title: this.resources.clnaverageprocessperformance }, { title: this.resources.clnhighestaverageprocessperformance }, { title: this.resources.clnlowestaverageprocessperformance }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.numofdays;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.numofdays;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            var PieData = [];
+                            for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                                PieData.push({
+                                    name: FilteredDataSource[i].JobCategoryName,
+                                    y: parseFloat(FilteredDataSource[i].JobAvg)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetJobTypeAvgPerformanceReportSummary") {
+
+                        var FilteredDataSource = [];
+
+                        this.$.pfLine.hidden = true;
+                        this.$.pfPie.hidden = false;
+                        this.$.ptJobsAveragePerformanceFilter.hidden = false;
+                        this.toggleToolbarPaperFabMargin(false);
+
+                        switch (this.report.reporttypeid) {
+                            case "0":
+                                this.selectedtab = 0;
+                                break;
+                            case "1":
+                                this.selectedtab = 1;
+                                break;
+                            case "2":
+                                this.selectedtab = 2;
+                                break;
+                        }
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            if (aReport.data.DataSource[i].TypeID == aReport.reporttypeid) {
+
+                                FilteredDataSource.push(aReport.data.DataSource[i]);
+                            }
+                        }
+
+                        for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                            if (Categories.indexOf(FilteredDataSource[i].JobTypeName)) {
+
+                                Categories.push(FilteredDataSource[i].JobTypeName);
+                            }
+                        }
+
+                        for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clnaverageprocessperformance,
+                                    data: [parseFloat(FilteredDataSource[i].JobAvg)]
+                                });
+
+                                Series.push({
+                                    name: this.resources.clnhighestaverageprocessperformance,
+                                    data: [parseFloat(FilteredDataSource[i].JobMax)]
+                                });
+
+                                Series.push({
+                                    name: this.resources.clnlowestaverageprocessperformance,
+                                    data: [parseFloat(FilteredDataSource[i].JobMin)]
+                                });
+                            }
+                            else {
+
+                                Series[0].data.push(parseFloat(FilteredDataSource[i].JobAvg));
+                                Series[1].data.push(parseFloat(FilteredDataSource[i].JobMax));
+                                Series[2].data.push(parseFloat(FilteredDataSource[i].JobMin));
+                            }
+                        }
+
+                        for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                            gridData.push([FilteredDataSource[i].JobTypeName, parseInt(FilteredDataSource[i].JobsCount), parseFloat(FilteredDataSource[i].JobAvg), parseFloat(FilteredDataSource[i].JobMax), parseFloat(FilteredDataSource[i].JobMin)]);
+                        }
+
+                        columnHeadings = [{ title: this.resources.jobtypes }, { title: this.resources.clntotaljobs }, { title: this.resources.clnaverageprocessperformance }, { title: this.resources.clnhighestaverageprocessperformance }, { title: this.resources.clnlowestaverageprocessperformance }];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "column";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.numofdays;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.numofdays;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            var PieData = [];
+                            for (var i = 0; i < FilteredDataSource.length; i++) {
+
+                                PieData.push({
+                                    name: FilteredDataSource[i].JobTypeName,
+                                    y: parseFloat(FilteredDataSource[i].JobAvg)
+                                });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = true;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.series = [{ name: ":", colorByPoint: true, data: PieData }];
+
+                            this.drawChart(aChart);
+                        }
+                    }
+
+                    else if (this.report.targetreportoperation == "GetReportDetailsJobHistoryReport") {
+
+                        if (this.report.charttype.toUpperCase() == "LINE") {
+
+                            this.report.charttype = "BAR";
+                        }
+
+                        aReport.data.DataSource.length > 1 ? this.$.pfPie.hidden = true : this.$.pfPie.hidden = false;
+
+                        this.$.pfLine.hidden = true;
+
+                        for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                            gridData.push([
+                                           aReport.data.DataSource[i].JobTypeName,
+                                           parseFloat(aReport.data.DataSource[i].JobsCount),
+                                           parseFloat(aReport.data.DataSource[i].Status23),
+                                           parseFloat(aReport.data.DataSource[i].Status13),
+                                           parseFloat(aReport.data.DataSource[i].Status11),
+                                           parseFloat(aReport.data.DataSource[i].Status14),
+                                           parseFloat(aReport.data.DataSource[i].Status22),
+                                           parseFloat(aReport.data.DataSource[i].Status16),
+                                           parseFloat(aReport.data.DataSource[i].Status10),
+                                           parseFloat(aReport.data.DataSource[i].Status12),
+                                           parseFloat(aReport.data.DataSource[i].Status17),
+                                           parseFloat(aReport.data.DataSource[i].Status15),
+                                           parseFloat(aReport.data.DataSource[i].Status21),
+                                           parseFloat(aReport.data.DataSource[i].Status18)
+                            ]);
+                        }
+
+                        columnHeadings = [
+                                        { title: this.resources.jobtypes },
+                                        { title: this.resources.clntotaljobs },
+                                        { title: this.resources.reviewattachment },
+                                        { title: this.resources.rejected },
+                                        { title: this.resources.workindinfield },
+                                        { title: this.resources.moreedits },
+                                        { title: this.resources.reassignment },
+                                        { title: this.resources.fieldsecondvisit },
+                                        { title: this.resources.newjob },
+                                        { title: this.resources.workingdoneinfield },
+                                        { title: this.resources.forqc },
+                                        { title: this.resources.nomoredits },
+                                        { title: this.resources.prepare },
+                                        { title: this.resources.parcelrequired }
+                        ];
+
+                        this.loadDataTable(gridData, columnHeadings);
+
+                        if (this.report.charttype.toUpperCase() == "BAR") {
+
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                var Letters = "0123456789ABCDEF".split('');
+                                var RandomColor = "#";
+                                for (var j = 0; j < 6; j++) {
+
+                                    RandomColor += Letters[Math.floor(Math.random() * 16)];
+                                }
+
+                                Categories.push(aReport.data.DataSource[i].JobTypeName);
+                            }
+
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                var Letters = "0123456789ABCDEF".split('');
+                                var RandomColor = "#";
+                                for (var j = 0; j < 6; j++) {
+
+                                    RandomColor += Letters[Math.floor(Math.random() * 16)];
+                                }
+
+                                if (i == 0) {
+
+                                    Series.push({
+                                        name: this.resources.reviewattachment,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status23)]
+                                    }, {
+                                        name: this.resources.rejected,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status13)]
+                                    }, {
+                                        name: this.resources.workindinfield,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status11)]
+                                    }, {
+                                        name: this.resources.moreedits,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status14)]
+                                    }, {
+                                        name: this.resources.reassignment,
+                                        data: [parseFloat(parseFloat(aReport.data.DataSource[i].Status22))]
+                                    }, {
+                                        name: this.resources.fieldsecondvisit,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status16)]
+                                    }, {
+                                        name: this.resources.newjob,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status10)]
+                                    }, {
+                                        name: this.resources.workingdoneinfield,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status12)]
+                                    }, {
+                                        name: this.resources.forqc,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status17)]
+                                    }, {
+                                        name: this.resources.nomoredits,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status15)]
+                                    }, {
+                                        name: this.resources.prepare,
+                                        data: [parseFloat(aReport.data.DataSource[i].UpdateAll)]
+                                    }, {
+                                        name: this.resources.parcelrequired,
+                                        data: [parseFloat(aReport.data.DataSource[i].Status18)]
+                                    });
+                                }
+                                else {
+
+                                    Series[0].data.push(parseFloat(aReport.data.DataSource[i].Status23));
+                                    Series[1].data.push(parseFloat(aReport.data.DataSource[i].Status13));
+                                    Series[2].data.push(parseFloat(aReport.data.DataSource[i].Status11));
+                                    Series[3].data.push(parseFloat(aReport.data.DataSource[i].Status14));
+                                    Series[4].data.push(parseFloat(aReport.data.DataSource[i].Status22));
+                                    Series[5].data.push(parseFloat(aReport.data.DataSource[i].Status16));
+                                    Series[6].data.push(parseFloat(aReport.data.DataSource[i].Status10));
+                                    Series[7].data.push(parseFloat(aReport.data.DataSource[i].Status12));
+                                    Series[8].data.push(parseFloat(aReport.data.DataSource[i].Status17));
+                                    Series[9].data.push(parseFloat(aReport.data.DataSource[i].Status15));
+                                    Series[10].data.push(parseFloat(aReport.data.DataSource[i].UpdateAll));
+                                    Series[11].data.push(parseFloat(aReport.data.DataSource[i].Status18));
+                                }
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "bar";
+                            aChart.stacked = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.yaxistitle = this.resources.numofdays;
+                            aChart.categories = Categories;
+                            aChart.series = Series.reverse();
+                            aChart.seriesstacked = true;
+                            aChart.legendreversed = true;
+
+                            this.drawChart(aChart);
+                        }
+
+                        else if (this.report.charttype.toUpperCase() == "PIE") {
+
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                var Letters = "0123456789ABCDEF".split('');
+                                var RandomColor = "#";
+                                for (var j = 0; j < 6; j++) {
+
+                                    RandomColor += Letters[Math.floor(Math.random() * 16)];
+                                }
+
+                                Series.push({
+                                    name: aReport.data.DataSource[i].JobTypeName,
+                                    color: RandomColor,
+                                    data:
+                                        [
+                                    {
+                                        name: this.resources.registeration,
+                                        y: parseFloat(aReport.data.DataSource[i].CreatorAll),
+                                        drilldown: "CREATE" + i
+                                    },
+                                    {
+                                        name: this.resources.field,
+                                        y: parseFloat(aReport.data.DataSource[i].FRAll),
+                                        drilldown: "FR" + i
+                                    },
+                                    {
+                                        name: this.resources.followup,
+                                        y: parseFloat(aReport.data.DataSource[i].FollowUpAll),
+                                        drilldown: "FOLLOWUP" + i
+                                    },
+                                    {
+                                        name: this.resources.qc,
+                                        y: parseFloat(aReport.data.DataSource[i].QCAll),
+                                        drilldown: "QC" + i
+                                    },
+                                    {
+                                        name: this.resources.prepare,
+                                        y: parseFloat(aReport.data.DataSource[i].UpdateAll),
+                                        drilldown: null
+                                    },
+                                    {
+                                        name: this.resources.gis,
+                                        y: parseFloat(aReport.data.DataSource[i].GISAll),
+                                        drilldown: "GIS" + i
+                                    }
+                                        ]
+                                });
+                            }
+
+                            for (var i = 0; i < aReport.data.DataSource.length; i++) {
+
+                                DrillDowns.push(
+                                     {
+                                         name: this.resources.registerationdrilldown,
+                                         id: "CREATE" + i,
+                                         data: [[this.resources.reviewattachment, parseFloat(aReport.data.DataSource[i].Status23)], [this.resources.rejected, parseFloat(aReport.data.DataSource[i].Status13)]]
+                                     },
+                                     {
+                                         name: this.resources.fielddrilldown,
+                                         id: "FR" + i,
+                                         data: [[this.resources.workindinfield, parseFloat(aReport.data.DataSource[i].Status11)]]
+                                     },
+                                     {
+                                         name: this.resources.followupdrilldown,
+                                         id: "FOLLOWUP" + i,
+                                         data: [[this.resources.moreedits, parseFloat(aReport.data.DataSource[i].Status14)], [this.resources.reassignment, parseFloat(aReport.data.DataSource[i].Status22)], [this.resources.fieldsecondvisit, parseFloat(aReport.data.DataSource[i].Status16)], [this.resources.newjob, parseFloat(aReport.data.DataSource[i].Status10)]]
+                                     },
+                                     {
+                                         name: this.resources.qcdrilldown,
+                                         id: "QC" + i,
+                                         data: [[this.resources.workingdoneinfield, parseFloat(aReport.data.DataSource[i].Status12)], [this.resources.forqc, parseFloat(aReport.data.DataSource[i].Status17)], [this.resources.nomoredits, parseFloat(aReport.data.DataSource[i].Status15)]]
+                                     },
+                                     {
+                                         name: this.resources.gisdrilldown,
+                                         id: "GIS" + i,
+                                         data: [[this.resources.parcelrequired, parseFloat(aReport.data.DataSource[i].Status18)]]
+                                     });
+                            }
+
+                            var aChart = new Object();
+                            aChart.hightcharttype = "pie";
+                            aChart.option3d = false;
+                            aChart.title = ChartTitle;
+                            aChart.subtitle = ChartSubTitle;
+                            aChart.categories = Categories;
+                            aChart.series = Series;
+                            aChart.drilldowns = DrillDowns;
+
+                            this.drawChart(aChart);
+                        }
+                    }
+                });
+            },
+
+            drawChart: function (aChart) {
+
+                var Context = this;
+                var StyleDirection = (this.language == "ar" ? "style='direction:rtl'" : "");
+
+                window.chart = new Highcharts.Chart({
+                    chart: {
+                        renderTo: Context.$.divChart,
+                        type: aChart.hightcharttype,
+                        options3d: aChart.option3d == true ? { enabled: true, alpha: 45 } : { enabled: false, alpha: 45 },
+                        events: {
+                            drillup: function (e) {
+                                setTimeout(function () { $(window).resize() }, 1000);
+                            }
+                        }
+                    },
+                    title: aChart.title,
+                    subtitle: aChart.subtitle,
+                    xAxis: aChart.hightcharttype == "pie" ? null : {
+                        categories: aChart.categories,
+                        gridLineColor: "#dbdbdb",
+                        gridLineDashStyle: "Solid",
+                        gridLineWidth: 1,
+                        gridZIndex: 1,
+                        reversed: this.language == "ar" ? true : false
+                    },
+                    yAxis: aChart.hightcharttype == "pie" ? null : {
+                        title: {
+                            text: aChart.yaxistitle
+                        },
+                        min: 0,
+                        gridLineColor: "#dbdbdb",
+                        gridLineDashStyle: "Solid",
+                        gridLineWidth: 1,
+                        gridZIndex: 1,
+                        opposite: this.language == "ar" ? true : false,
+                        useHTML: Highcharts.hasBidiBug
+                    },
+                    tooltip: {
+                        headerFormat: "<div " + StyleDirection + "><span style=\"font-family: Roboto, Noto, sans-serif; font-size:14px; color: white;\">{point.key}</span><table>",
+                        pointFormat: aChart.hightcharttype == "pie" ? "<span style=\"font-family: Roboto, Noto, sans-serif; font-size:14px; color: white;\">{series.name} {point.percentage:.1f}%<span>" : "<tr><td style=\"color:white;font-family: Roboto, Noto, sans-serif;\">{series.name}: </td>" + "<td style=\"font-family: Roboto, Noto, sans-serif; font-size:14px; color: white;\">{point.y:f}</td></tr>",
+                        footerFormat: "</table></div>",
+                        useHTML: true,
+                        backgroundColor: "#737373",
+                        borderRadius: 2,
+                        borderWidth: 0,
+                        shadow: false
+                    },
+                    credits: {
+                        enabled: false
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: aChart.stacked ? "normal" : ""
+                        },
+                        pie: {
+                            innerSize: 100,
+                            depth: 45,
+                            allowPointSelect: true,
+                            cursor: "pointer",
+                            showInLegend: true
+                        },
+                        series: aChart.seriesstacked ? {
+                            stacking: "normal"
+                        } : null
+                    },
+                    legend: {
+                        reversed: aChart.legendreversed ? true : false
+                    },
+                    series: aChart.series,
+                    drilldown: aChart.drilldowns != null ? {
+                        series: aChart.drilldowns
+                    } : []
+                });
+
+                setTimeout(function () { $(window).resize() }, 1000);
+            },
+
+            handleToolbarBackClick: function () {
+
+                this.fire("back-clicked", null);
+            },
+
+            handleShowFilter: function () {
+
+                this.$.icReportFilterCriteria.toggle();
+            },
+
+            handleChangeReportType: function (aEvent) {
+
+                this.report.charttype = aEvent.currentTarget.attributes["outputtype"].value.toUpperCase();
+                this.bindReport(this.report);
+            },
+
+            handlePaperTabClick: function (aEvent) {
+
+                this.report.reporttypeid = aEvent.currentTarget.attributes["reporttypeid"].value
+                this.bindReport(this.report);
+            },
+
+            handleToggleFavoriteView: function () {
+
+                this.$.pmAddFavorite.hidden = !this.$.pmAddFavorite.hidden;
+
+                this.$.piFavoriteName.value = "";
+                this.$.piFavoriteDescription.value = "";
+            },
+
+            handleSaveFavorite: function () {
+
+                if (this.$.piFavoriteName.value.trim() == "") {
+
+                    this.fire("iron-signal", { name: "information", data: this.resources.required });
+                    return;
+                }
+
+                this.report.favoritename = this.$.piFavoriteName.value.trim();
+                this.report.favoritedescription = this.$.piFavoriteDescription.value;
+                this.report.data = null;
+
+                if (this.rawuserfavorites) {
+
+                    var UserFavoritesArray = JSON.parse(this.rawuserfavorites);
+                    UserFavoritesArray.push(this.report);
+                }
+                else {
+
+                    var UserFavoritesArray = [];
+                    UserFavoritesArray.push(this.report);
+                }
+
+                this.rawuserfavorites = JSON.stringify(UserFavoritesArray);
+
+                this.handleToggleFavoriteView();
+            },
+
+            handleEmptyUserFavoritesLocalStorage: function () {
+
+                this.rawuserfavorites = "";
+            },
+
+            handleESRIMapLoad: function (aEvent) {
+
+                this.dashboardreportmaploaded = true;
+            },
+
+            handleNeighborhoodsLookupLoad: function () {
+
+                this.neighborhoodsloaded = true;
+            },
+
+            loadDataTable: function (aData, aColumns) {
+
+                var ColumnsHeadings = [];
+
+                for (var i = 0; i < aColumns.length; i++) {
+
+                    ColumnsHeadings.push({
+
+                        "title": "<div style='text-align: center'>" + aColumns[i].title + "</div>",
+                        "targets": [i]
+                    });
+                }
+
+                $("#dataTable").DataTable({
+                    "columnDefs": ColumnsHeadings,
+                    data: aData,
+                    "scrollY": "400px",
+                    "scrollX": true,
+                    "scrollCollapse": true,
+                    "paging": false,
+                    "ordering": true,
+                    "info": false,
+                    "filter": false,
+                    "destroy": true,
+                });
+
+                $("td").css("text-align", "center");
+            },
+
+            destroySourceTable: function () {
+
+                if ($.fn.DataTable.isDataTable("#dataTable")) {
+
+                    var CurrentSourceTable = $("#dataTable").DataTable();
+                    CurrentSourceTable.destroy();
+
+                    $("#dataTable").empty();
+                }
+            },
+
+            ZoomAndClassBreakTopAreas: function (aNeighborhoodsLoaded, aTopAreaMapLoaded, aTopAreas) {
+
+                this.$.esriMapDashboardReport.hideRendererControls();
+
+                var Context = this;
+
+                if (aTopAreas) {
+
+                    var Locations = [];
+
+                    for (var i = 0; i < aTopAreas.length; i++) {
+
+                        var FoundArea = this.$.neighborhoodsLookup.getAreaInfoByName(aTopAreas[i].AreaName);
+
+                        if (FoundArea.length == 1) {
+
+                            Locations.push({ ID: FoundArea[0].ID, x: FoundArea[0].X, y: FoundArea[0].Y, AreaNameArabic: FoundArea[0].AreaNameArabic, AreaNameEnglish: FoundArea[0].AreaNameEnglish, JobsCount: aTopAreas[i].JobsCount });
+                        }
+                    }
+
+                    if (aTopAreas.length > 0) {
+
+                        var MaxValue = aTopAreas[0].JobsCount;
+                        var MinValue = aTopAreas[aTopAreas.length - 1].JobsCount;
+
+                        if (ESRIExtraModules.Loaded) {
+
+                            this.$.esriMapDashboardReport.zoomToLocations(Locations);
+                            this.$.esriMapDashboardReport.classBreakLocations(Locations, MaxValue, MinValue);
+                        }
+                        else {
+
+                            setTimeout(function () { Context.ZoomAndClassBreakDayTopAreas(aNeighborhoodsLoaded, aTopAreaMapLoaded, aTopAreas); }, 1000);
+                        }
+                    }
+                }
+            }
+
+        });
+
+    </script>
+
+</dom-module>

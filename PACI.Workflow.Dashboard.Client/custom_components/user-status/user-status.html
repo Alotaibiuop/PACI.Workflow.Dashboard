@@ -1,0 +1,71 @@
+﻿<dom-module id="user-status">
+
+    <template>
+
+        <localization-resources language="{{language}}"
+                                on-load="initializeResources">
+        </localization-resources>
+
+    </template>
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "user-status",
+
+            properties: {
+                language: {
+                    type: String,
+                },
+                threshold: {
+                    type: Number,
+                    value: 600
+                },
+                idleTime: {
+                    type: Number,
+                    value: 0
+                }
+            },
+
+            attached: function () {
+
+                this.async(function () {
+
+                    this.initializeUserStatus();
+                });
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+            },
+
+            initializeUserStatus: function () {
+
+                var Context = this;
+
+                $(window).on("mousemove touchstart", function (e) {
+
+                    Context.idleTime = 0;
+                    Context.fire("userstatus-changed", { statusid: 1, status: Context.resources.online });
+                });
+
+                setInterval(function () { Context.timerIncrement() }, 1000);
+            },
+
+            timerIncrement: function () {
+
+                this.idleTime++;
+
+                if (this.idleTime > parseInt(this.threshold)) {
+
+                    this.fire("userstatus-changed", { statusid: 0, status: this.resources.idle });
+                }
+            }
+
+        });
+
+    </script>
+
+</dom-module>

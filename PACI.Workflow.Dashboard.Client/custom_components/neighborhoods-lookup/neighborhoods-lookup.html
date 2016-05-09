@@ -1,0 +1,224 @@
+﻿<dom-module id="neighborhoods-lookup">
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "neighborhoods-lookup",
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                }
+            },
+
+            attached: function () {
+
+                this.initializeLookup();
+            },
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    this.initializeLookup();
+                });
+            },
+
+            initializeLookup: function () {
+
+                this.lookup = [];
+
+                this.lookup.push({ ID: 101, AreaNameArabic: "دسمان", AreaNameEnglish: "Dasman", X: "5343173.95317541", Y: "3424892.57435201" });
+                this.lookup.push({ ID: 102, AreaNameArabic: "شرق", AreaNameEnglish: "Sharq", X: "5341854.38984872", Y: "3424253.59557021" });
+                this.lookup.push({ ID: 105, AreaNameArabic: "القبلة", AreaNameEnglish: "Qibla", X: "5339990.78447987", Y: "3422708.03629712" });
+                this.lookup.push({ ID: 106, AreaNameArabic: "المنصورية", AreaNameEnglish: "Mansouriya", X: "5342736.97916157", Y: "3421269.5567838" });
+                this.lookup.push({ ID: 107, AreaNameArabic: "الدسمة", AreaNameEnglish: "Dasma", X: "5343481.19227661", Y: "3422215.63852595" });
+                this.lookup.push({ ID: 109, AreaNameArabic: "الشامية", AreaNameEnglish: "Shamiya", X: "5339619.45961303", Y: "3420467.72619517" });
+                this.lookup.push({ ID: 111, AreaNameArabic: "القادسية", AreaNameEnglish: "Qadsiya", X: "5343699.40619293", Y: "3420132.62328707" });
+                this.lookup.push({ ID: 113, AreaNameArabic: "الفيحاء", AreaNameEnglish: "Faiha", X: "5340958.44603453", Y: "3418783.95884546" });
+                this.lookup.push({ ID: 114, AreaNameArabic: "النزهة", AreaNameEnglish: "Nuzha", X: "5342387.29231797", Y: "3419309.88755738" });
+                this.lookup.push({ ID: 115, AreaNameArabic: "الشويخ", AreaNameEnglish: "Shuwaikh", X: "5337967.97618394", Y: "3420653.51403981" });
+                this.lookup.push({ ID: 116, AreaNameArabic: "كيفان", AreaNameEnglish: "Kifan", X: "5338904.61604974", Y: "3418930.15710846" });
+                this.lookup.push({ ID: 118, AreaNameArabic: "الشويخ الصناعية 2", AreaNameEnglish: "Shuwaikh Industrial-2", X: "5337653.40180013", Y: "3416791.43516043" });
+                this.lookup.push({ ID: 130, AreaNameArabic: "الشويخ الصناعية 3", AreaNameEnglish: "Shuwaikh Industrial-3", X: "5335617.13468436", Y: "3416633.96340397" });
+                this.lookup.push({ ID: 104, AreaNameArabic: "حدائق السور", AreaNameEnglish: "Al Sour Gardens", X: "5341132.83119999", Y: "3421599.361" });
+                this.lookup.push({ ID: 201, AreaNameArabic: "الخالدية", AreaNameEnglish: "Khaldiya", X: "5339374.34128263", Y: "3417162.94761864" });
+                this.lookup.push({ ID: 202, AreaNameArabic: "العديلية", AreaNameEnglish: "Adailiya", X: "5341319.86153556", Y: "3417229.26573423" });
+                this.lookup.push({ ID: 203, AreaNameArabic: "الروضة", AreaNameEnglish: "Rawda", X: "5343219.76221819", Y: "3417631.97853315" });
+                this.lookup.push({ ID: 204, AreaNameArabic: "حولي", AreaNameEnglish: "Hawalli", X: "5345490.58958075", Y: "3418529.93967882" });
+                this.lookup.push({ ID: 205, AreaNameArabic: "الشعب", AreaNameEnglish: "Shaab", X: "5346319.28659708", Y: "3420345.68192332" });
+                this.lookup.push({ ID: 208, AreaNameArabic: "الرميثية", AreaNameEnglish: "Rumaithiya", X: "5351346.78639998", Y: "3415931.0803682" });
+                this.lookup.push({ ID: 213, AreaNameArabic: "بيان", AreaNameEnglish: "Bayan", X: "5348408.03363859", Y: "3413681.55191341" });
+                this.lookup.push({ ID: 214, AreaNameArabic: "اليرموك", AreaNameEnglish: "Yarmouk", X: "5339956.68299329", Y: "3415220.37422747" });
+                this.lookup.push({ ID: 215, AreaNameArabic: "قرطبة", AreaNameEnglish: "Qortuba", X: "5341871.54587115", Y: "3415415.77345697" });
+                this.lookup.push({ ID: 216, AreaNameArabic: "السرة", AreaNameEnglish: "Surra", X: "5344161.04830648", Y: "3415639.38759525" });
+                this.lookup.push({ ID: 217, AreaNameArabic: "الجابرية", AreaNameEnglish: "Jabriya", X: "5346980.92665266", Y: "3416253.96635012" });
+                this.lookup.push({ ID: 252, AreaNameArabic: "خيطان", AreaNameEnglish: "Khaitan", X: "5340644.14616046", Y: "3411889.50495548" });
+                this.lookup.push({ ID: 220, AreaNameArabic: "الفروانية", AreaNameEnglish: "Farwaniya", X: "5338795.40834831", Y: "3411047.15907008" });
+                this.lookup.push({ ID: 221, AreaNameArabic: "الري", AreaNameEnglish: "Rai", X: "5337206.13053261", Y: "3414955.75429227" });
+                this.lookup.push({ ID: 222, AreaNameArabic: "العمرية", AreaNameEnglish: "Omariya", X: "5338413.84942362", Y: "3413369.35581842" });
+                this.lookup.push({ ID: 223, AreaNameArabic: "الرابية", AreaNameEnglish: "Rabiya", X: "5336368.01397557", Y: "3413231.40694417" });
+                this.lookup.push({ ID: 226, AreaNameArabic: "العارضية", AreaNameEnglish: "Ardhiya", X: "5331550.05470693", Y: "3412363.61356096" });
+                this.lookup.push({ ID: 227, AreaNameArabic: "الفردوس", AreaNameEnglish: "Ferdous", X: "5329357.2352977", Y: "3411841.18365872" });
+                this.lookup.push({ ID: 228, AreaNameArabic: "جليب الشيوخ", AreaNameEnglish: "Jleeb Al-Shiyoukh", X: "5336029.58522797", Y: "3408404.89003526" });
+                this.lookup.push({ ID: 231, AreaNameArabic: "البدع", AreaNameEnglish: "Al Bida'a", X: "5353221.95144858", Y: "3415895.53551675" });
+                this.lookup.push({ ID: 234, AreaNameArabic: "الزهراء", AreaNameEnglish: "Zahra", X: "5343297.82825152", Y: "3410701.72333619" });
+                this.lookup.push({ ID: 235, AreaNameArabic: "حطين", AreaNameEnglish: "Hitteen", X: "5345554.40464547", Y: "3411819.94593095" });
+                this.lookup.push({ ID: 237, AreaNameArabic: "السلام", AreaNameEnglish: "Salam", X: "5344942.78251992", Y: "3413546.00860348" });
+                this.lookup.push({ ID: 243, AreaNameArabic: "أشبيلية", AreaNameEnglish: "Ashbeliah", X: "5336501.24217098", Y: "3410458.79690147" });
+                this.lookup.push({ ID: 242, AreaNameArabic: "العارضية 4", AreaNameEnglish: "Ardhiya 4", X: "5334089.37304746", Y: "3411127.21782936" });
+                this.lookup.push({ ID: 247, AreaNameArabic: "الرحاب", AreaNameEnglish: "Rehab", X: "5336490.88842949", Y: "3411883.96559474" });
+                this.lookup.push({ ID: 248, AreaNameArabic: "العدان", AreaNameEnglish: "Al-Adan", X: "5350923.42461638", Y: "3405236.61886586" });
+                this.lookup.push({ ID: 249, AreaNameArabic: "القصور", AreaNameEnglish: "Al-Qusour", X: "5351480.33780284", Y: "3403063.02900569" });
+                this.lookup.push({ ID: 250, AreaNameArabic: "القرين", AreaNameEnglish: "Al-Qurain", X: "5351809.43067746", Y: "3401412.32004961" });
+                this.lookup.push({ ID: 251, AreaNameArabic: "مبارك الكبير", AreaNameEnglish: "Mubarak Al-Kabeer", X: "5352510.08187715", Y: "3399568.80658954" });
+                this.lookup.push({ ID: 302, AreaNameArabic: "الرقة", AreaNameEnglish: "Riqqa", X: "5355062.95299348", Y: "3394505.42540653" });
+                this.lookup.push({ ID: 316, AreaNameArabic: "الظهر", AreaNameEnglish: "Dhaher", X: "5350795.89115484", Y: "3396580.3147578" });
+                this.lookup.push({ ID: 403, AreaNameArabic: "الجهراء", AreaNameEnglish: "Jahra", X: "5306903.37280465", Y: "3420040.61228897" });
+                this.lookup.push({ ID: 420, AreaNameArabic: "الواحة", AreaNameEnglish: "Waha", X: "5305323.43791173", Y: "3419249.92864477" });
+                this.lookup.push({ ID: 427, AreaNameArabic: "العيون", AreaNameEnglish: "Oyoun", X: "5305033.01982481", Y: "3417653.27195744" });
+                this.lookup.push({ ID: 436, AreaNameArabic: "مبارك عبدالله الجابر", AreaNameEnglish: "Mubarak Al-Abdullah", X: "5348552.05162886", Y: "3410550.73693414" });
+                this.lookup.push({ ID: 439, AreaNameArabic: "فهد الأحمد", AreaNameEnglish: "Fahad Al-Ahmad", X: "5355061.65513312", Y: "3391890.92284916" });
+                this.lookup.push({ ID: 445, AreaNameArabic: "العارضية حرفية ", AreaNameEnglish: "Ardhiya Herafiya", X: "5333411.96662113", Y: "3413126.8268017" });
+                this.lookup.push({ ID: 122, AreaNameArabic: "جزيرة بوبيان", AreaNameEnglish: "Bubyan Island", X: "5366902.33825457", Y: "3476060.12370085" });
+                this.lookup.push({ ID: 121, AreaNameArabic: "جزيرة وربة", AreaNameEnglish: "Warba Island", X: "5351553.9687331", Y: "3502676.04925748" });
+                this.lookup.push({ ID: 229, AreaNameArabic: "منطقة الوزارات", AreaNameEnglish: "Ministries Area", X: "5345267.41330204", Y: "3410211.72022854" });
+                this.lookup.push({ ID: 306, AreaNameArabic: "المهبولة", AreaNameEnglish: "Mahboula", X: "5356808.08489374", Y: "3394493.51633388" });
+                this.lookup.push({ ID: 307, AreaNameArabic: "أبو حليفة", AreaNameEnglish: "Abu Halifa", X: "5357266.70667365", Y: "3391981.92517782" });
+                this.lookup.push({ ID: 308, AreaNameArabic: "المنقف", AreaNameEnglish: "Mangaf", X: "5357564.08527376", Y: "3389049.89280081" });
+                this.lookup.push({ ID: 103, AreaNameArabic: "المرقاب", AreaNameEnglish: "Mirqab", X: "5341590.06079616", Y: "3422583.76944072" });
+                this.lookup.push({ ID: 110, AreaNameArabic: "ضاحية عبدالله السالم", AreaNameEnglish: "Abdulla Al-Salem", X: "5341319.28890938", Y: "3420552.14411554" });
+                this.lookup.push({ ID: 232, AreaNameArabic: "صبحان الصناعية", AreaNameEnglish: "Subhan Industrial", X: "5343701.97401161", Y: "3405433.95785562" });
+                this.lookup.push({ ID: 236, AreaNameArabic: "الصديق", AreaNameEnglish: "Al-Siddiq", X: "5342451.76127001", Y: "3413270.93489975" });
+                this.lookup.push({ ID: 244, AreaNameArabic: "العارضية 6", AreaNameEnglish: "Ardhiya 6", X: "5334659.88779337", Y: "3413147.42020384" });
+                this.lookup.push({ ID: 246, AreaNameArabic: "ضجيج الطائرات", AreaNameEnglish: "Dajeej", X: "5339129.08892502", Y: "3409035.36489202" });
+                this.lookup.push({ ID: 253, AreaNameArabic: "المباركية", AreaNameEnglish: "Mubarakyia", X: "5347668.12012643", Y: "3411922.55668717" });
+                this.lookup.push({ ID: 340, AreaNameArabic: "ضاحية جابر العلي", AreaNameEnglish: "Jaber Al-Ali", X: "5352556.7520358", Y: "3397146.18482264" });
+                this.lookup.push({ ID: 408, AreaNameArabic: "الصليبية الصناعية 1", AreaNameEnglish: "Sulaibiya Industrial 1", X: "5325559.31836542", Y: "3412422.5479731" });
+                this.lookup.push({ ID: 444, AreaNameArabic: "شمال غرب الجهراء", AreaNameEnglish: "North West Jahra", X: "5304338.74417192", Y: "3420880.98291159" });
+                this.lookup.push({ ID: 120, AreaNameArabic: "جزيرة فيلكا", AreaNameEnglish: "Failaka Island", X: "5380494.07974212", Y: "3431058.91073594" });
+                this.lookup.push({ ID: 415, AreaNameArabic: "ام العيش", AreaNameEnglish: "Umm Al-Aish", X: "5316562.52705377", Y: "3462844.13001292" });
+                this.lookup.push({ ID: 125, AreaNameArabic: "جزيرة كبر", AreaNameEnglish: "Kubbar Island", X: "5398139.37588089", Y: "3384763.87153694" });
+                this.lookup.push({ ID: 124, AreaNameArabic: "جزيرة عوهة", AreaNameEnglish: "Auha Island", X: "5392312.47504182", Y: "3423832.50220398" });
+                this.lookup.push({ ID: 128, AreaNameArabic: "جزيرة أم النمل", AreaNameEnglish: "Umm Al-Namel Island", X: "5328269.49414398", Y: "3424308.05489985" });
+                this.lookup.push({ ID: 123, AreaNameArabic: "جزيرة مسكان", AreaNameEnglish: "Mischan Island", X: "5371344.40666128", Y: "3437618.06451913" });
+                this.lookup.push({ ID: 127, AreaNameArabic: "جزيرة أم المرادم", AreaNameEnglish: "Umm Al-Maradim Island", X: "5415819.78766904", Y: "3335040.03416817" });
+                this.lookup.push({ ID: 126, AreaNameArabic: "جزيرة قاروه", AreaNameEnglish: "Qaruh Island", X: "5427821.67541267", Y: "3352072.67314017" });
+                this.lookup.push({ ID: 108, AreaNameArabic: "بنيد القار", AreaNameEnglish: "Bnaid Al-Qar", X: "5343704.10902981", Y: "3423347.69471303" });
+                this.lookup.push({ ID: 207, AreaNameArabic: "السالمية", AreaNameEnglish: "Salmiya", X: "5350890.71936809", Y: "3418325.06092606" });
+                this.lookup.push({ ID: 310, AreaNameArabic: "الفحيحيل", AreaNameEnglish: "Fahaheel", X: "5357636.8339432", Y: "3385878.97117081" });
+                this.lookup.push({ ID: 318, AreaNameArabic: "شاليهات الخيران", AreaNameEnglish: "Shalehat Al-Khiran", X: "5385768.87079246", Y: "3328293.08044337" });
+                this.lookup.push({ ID: 345, AreaNameArabic: "شاليهات الدوحة", AreaNameEnglish: "Shalehat Doha", X: "5316779.29407399", Y: "3422951.67522898" });
+                this.lookup.push({ ID: 309, AreaNameArabic: "الصباحية", AreaNameEnglish: "Sabahiya", X: "5355182.65490843", Y: "3389298.34794316" });
+                this.lookup.push({ ID: 417, AreaNameArabic: "كبد", AreaNameEnglish: "Kabd", X: "5314649.11446484", Y: "3387944.1251189" });
+                this.lookup.push({ ID: 348, AreaNameArabic: "شاليهات الصبية", AreaNameEnglish: "Shalehat Subiya", X: "5357595.26539999", Y: "3459421.629" });
+                this.lookup.push({ ID: 413, AreaNameArabic: "كاظمة", AreaNameEnglish: "Kazima", X: "5317632.51142616", Y: "3440939.32949656" });
+                this.lookup.push({ ID: 347, AreaNameArabic: "شاليهات كاظمة", AreaNameEnglish: "Shalehat Kazima", X: "5324666.4554", Y: "3439093.648" });
+                this.lookup.push({ ID: 404, AreaNameArabic: "القصر", AreaNameEnglish: "Qasr", X: "5309226.17437554", Y: "3419231.32752881" });
+                this.lookup.push({ ID: 405, AreaNameArabic: "النعيم", AreaNameEnglish: "Naeem", X: "5309384.91345039", Y: "3418089.51504444" });
+                this.lookup.push({ ID: 303, AreaNameArabic: "هدية", AreaNameEnglish: "Hadiya", X: "5353536.89114261", Y: "3394133.42490175" });
+                this.lookup.push({ ID: 431, AreaNameArabic: "الجهراء الصناعية", AreaNameEnglish: "Jahra-Industrial", X: "5304735.27934858", Y: "3416566.63661579" });
+                this.lookup.push({ ID: 112, AreaNameArabic: "الدعية", AreaNameEnglish: "Daiya", X: "5344917.83092417", Y: "3421535.22446226" });
+                this.lookup.push({ ID: 132, AreaNameArabic: "الواجهة البحرية", AreaNameEnglish: "The Sea Front", X: "5340650.11609999", Y: "3424580.2792" });
+                this.lookup.push({ ID: 131, AreaNameArabic: "المنطقة الصحية", AreaNameEnglish: "Health Area", X: "5331653.92045056", Y: "3416864.84932055" });
+                this.lookup.push({ ID: 117, AreaNameArabic: "معسكرات المباركية", AreaNameEnglish: "Mubarakiya Camps", X: "5333195.88202348", Y: "3415804.58887659" });
+                this.lookup.push({ ID: 119, AreaNameArabic: "غرناطة", AreaNameEnglish: "Ghornata", X: "5329171.0705764", Y: "3415997.4061271" });
+                this.lookup.push({ ID: 225, AreaNameArabic: "الأندلس", AreaNameEnglish: "Andalus", X: "5330312.02965431", Y: "3414272.65734945" });
+                this.lookup.push({ ID: 342, AreaNameArabic: "شاليهات الزور", AreaNameEnglish: "Shalehat Zoor", X: "5386111.37692052", Y: "3334256.4002117" });
+                this.lookup.push({ ID: 446, AreaNameArabic: "مدينة جابر الأحمد", AreaNameEnglish: "Jaber Al-Ahmad City", X: "5317239.04655473", Y: "3418947.76571801" });
+                this.lookup.push({ ID: 428, AreaNameArabic: "معسكرات الجهراء", AreaNameEnglish: "Jahra Camps", X: "5310944.91081442", Y: "3420612.22269925" });
+                this.lookup.push({ ID: 442, AreaNameArabic: "البحيث", AreaNameEnglish: "Bhaith", X: "5338973.88275788", Y: "3497569.1497798" });
+                this.lookup.push({ ID: 422, AreaNameArabic: "الصبية", AreaNameEnglish: "Subiya", X: "5349039.8689", Y: "3455597.81139999" });
+                this.lookup.push({ ID: 443, AreaNameArabic: "غرب أبو فطيرة الحرفية", AreaNameEnglish: "West Abu Ftirah Hirafyia", X: "5348982.00275621", Y: "3400893.37165817" });
+                this.lookup.push({ ID: 245, AreaNameArabic: "المنطقة الوسطى", AreaNameEnglish: "Wista", X: "5346503.97103094", Y: "3403569.79485056" });
+                this.lookup.push({ ID: 435, AreaNameArabic: "النهضة", AreaNameEnglish: "Nahda", X: "5327666.05001399", Y: "3414279.37041953" });
+                this.lookup.push({ ID: 409, AreaNameArabic: "العبدلي", AreaNameEnglish: "Abdally", X: "5319925.80003992", Y: "3502169.76204339" });
+                this.lookup.push({ ID: 407, AreaNameArabic: "الصليبية الشعبية", AreaNameEnglish: "Sulaibiya", X: "5323880.73594597", Y: "3411993.52962927" });
+                this.lookup.push({ ID: 241, AreaNameArabic: "صباح الناصر", AreaNameEnglish: "Sabah Al-Nasser", X: "5330780.6996118", Y: "3410237.1256573" });
+                this.lookup.push({ ID: 410, AreaNameArabic: "أمغرة", AreaNameEnglish: "Amghara", X: "5316684.4147362", Y: "3414327.45977134" });
+                this.lookup.push({ ID: 437, AreaNameArabic: "مدينة سعد العبدالله", AreaNameEnglish: "Saad Al-Abdulla City", X: "5311661.04142885", Y: "3415259.02153917" });
+                this.lookup.push({ ID: 440, AreaNameArabic: "القيروان", AreaNameEnglish: "Kaerawan", X: "5320902.33271522", Y: "3414222.26320799" });
+                this.lookup.push({ ID: 441, AreaNameArabic: "جواخير الجهراء", AreaNameEnglish: "Jawakher Al Jahra", X: "5305452.65102791", Y: "3414693.67522326" });
+                this.lookup.push({ ID: 433, AreaNameArabic: "الصليبية الصناعية 3", AreaNameEnglish: "Sulaibyia Industrial 3", X: "5324399.28634742", Y: "3402293.64677993" });
+                this.lookup.push({ ID: 423, AreaNameArabic: "الصليبية الصناعية 2", AreaNameEnglish: "Sulaibiya Industrial 2", X: "5327010.88949979", Y: "3411114.83439813" });
+                this.lookup.push({ ID: 211, AreaNameArabic: "المسيلة", AreaNameEnglish: "Messila", X: "5353707.82038328", Y: "3407744.71311176" });
+                this.lookup.push({ ID: 209, AreaNameArabic: "مشرف", AreaNameEnglish: "Mishrif", X: "5350803.55140755", Y: "3410927.3284193" });
+                this.lookup.push({ ID: 210, AreaNameArabic: "سلوى", AreaNameEnglish: "Salwa", X: "5351994.8233647", Y: "3413111.97008686" });
+                this.lookup.push({ ID: 206, AreaNameArabic: "المسايل", AreaNameEnglish: "Al Masayel", X: "5353223.82274707", Y: "3405996.62120617" });
+                this.lookup.push({ ID: 212, AreaNameArabic: "صباح السالم", AreaNameEnglish: "Sabah Al-Salem", X: "5350762.32390824", Y: "3408028.92064665" });
+                this.lookup.push({ ID: 239, AreaNameArabic: "أنجفة", AreaNameEnglish: "Anjafa", X: "5353060.2745613", Y: "3413111.05714972" });
+                this.lookup.push({ ID: 317, AreaNameArabic: "شاليهات النويصيب", AreaNameEnglish: "Shalehat Al-Nuwaiseeb", X: "5388855.29035363", Y: "3319967.94092842" });
+                this.lookup.push({ ID: 419, AreaNameArabic: "تيماء", AreaNameEnglish: "Taima", X: "5307894.70166867", Y: "3417546.03300048" });
+                this.lookup.push({ ID: 416, AreaNameArabic: "السالمي", AreaNameEnglish: "Salmy", X: "5206180.39342442", Y: "3398021.55763888" });
+                this.lookup.push({ ID: 411, AreaNameArabic: "الشقايا", AreaNameEnglish: "Al Sheqaya", X: "5220994.58135642", Y: "3421119.9460186" });
+                this.lookup.push({ ID: 133, AreaNameArabic: "المنطقة الحرة", AreaNameEnglish: "Shuwaikh Port", X: "5333263.21099999", Y: "3420693.3329" });
+                this.lookup.push({ ID: 129, AreaNameArabic: "الشويخ الصناعية 1", AreaNameEnglish: "Shuwaikh Industrial-1", X: "5335235.30572041", Y: "3418619.89865581" });
+                this.lookup.push({ ID: 230, AreaNameArabic: "الشهداء", AreaNameEnglish: "Shuhada", X: "5346782.47338097", Y: "3410174.64442495" });
+                this.lookup.push({ ID: 134, AreaNameArabic: "شمال غرب الصليبيخات", AreaNameEnglish: "Northwest Sulaibikhat", X: "5322295.84609397", Y: "3417374.35323355" });
+                this.lookup.push({ ID: 402, AreaNameArabic: "الصليبيخات", AreaNameEnglish: "Sulaibikhat", X: "5325017.51102108", Y: "3414876.54981469" });
+                this.lookup.push({ ID: 233, AreaNameArabic: "المطار الدولي", AreaNameEnglish: "International Airport", X: "5340135.99450315", Y: "3403114.79315113" });
+                this.lookup.push({ ID: 312, AreaNameArabic: "علي صباح السالم", AreaNameEnglish: "Ali Subah Al-Salem", X: "5360346.85159223", Y: "3370207.90749628" });
+                this.lookup.push({ ID: 322, AreaNameArabic: "المقوع", AreaNameEnglish: "Magwa", X: "5348425.89023532", Y: "3393898.30218" });
+                this.lookup.push({ ID: 338, AreaNameArabic: "جنوب الصباحية", AreaNameEnglish: "South-Sabahiya", X: "5355132.40593154", Y: "3385629.23217899" });
+                this.lookup.push({ ID: 333, AreaNameArabic: "شمال الأحمدي", AreaNameEnglish: "North Ahmadi", X: "5350710.79813707", Y: "3388567.98045095" });
+                this.lookup.push({ ID: 432, AreaNameArabic: "الجنوبية الجواخير", AreaNameEnglish: "Janobyia Aljawakheer", X: "5335895.85128349", Y: "3338599.8825527" });
+                this.lookup.push({ ID: 332, AreaNameArabic: "وسط الأحمدي", AreaNameEnglish: "Middle of Ahmadi", X: "5351117.50892468", Y: "3387256.90420691" });
+                this.lookup.push({ ID: 330, AreaNameArabic: "جنوب الأحمدي", AreaNameEnglish: "South Ahmadi", X: "5350182.00690179", Y: "3385434.89189658" });
+                this.lookup.push({ ID: 314, AreaNameArabic: "شرق الأحمدي", AreaNameEnglish: "East Ahmadi", X: "5353174.45215595", Y: "3385700.7312371" });
+                this.lookup.push({ ID: 349, AreaNameArabic: "شاليهات ميناء عبدالله", AreaNameEnglish: "Shalehat Mina Abdullah", X: "5362550.14829766", Y: "3371534.03445035" });
+                this.lookup.push({ ID: 434, AreaNameArabic: "الشعيبه الصناعيه الغربيه", AreaNameEnglish: "Shuaiba Industrial Western", X: "5356178.98409291", Y: "3376085.75743394" });
+                this.lookup.push({ ID: 311, AreaNameArabic: "الشعيبة", AreaNameEnglish: "Shuaiba", X: "5358281.94964314", Y: "3380322.00551244" });
+                this.lookup.push({ ID: 359, AreaNameArabic: "الخيران السكنية", AreaNameEnglish: "Khiran City", X: "5374637.97699845", Y: "3333004.98195656" });
+                this.lookup.push({ ID: 447, AreaNameArabic: "كبد الزراعية", AreaNameEnglish: "kabd Agricultural", X: "5321687.65295893", Y: "3387871.61674675" });
+                this.lookup.push({ ID: 320, AreaNameArabic: "ميناء عبدالله", AreaNameEnglish: "Mina Abdulla", X: "5353574.64226096", Y: "3372806.86162762" });
+                this.lookup.push({ ID: 344, AreaNameArabic: "شاليهات بنيدر", AreaNameEnglish: "Shalehat Bneder", X: "5374047.1834509", Y: "3352376.26195847" });
+                this.lookup.push({ ID: 343, AreaNameArabic: "شاليهات الجليعة", AreaNameEnglish: "Shalehat Jlea'a", X: "5372619.92095769", Y: "3360841.7845705" });
+                this.lookup.push({ ID: 346, AreaNameArabic: "شاليهات الضباعية", AreaNameEnglish: "Shalehat Dba'ayeh", X: "5366404.82691588", Y: "3365620.37997853" });
+                this.lookup.push({ ID: 325, AreaNameArabic: "الزور", AreaNameEnglish: "Zoor", X: "5380590.92295393", Y: "3339578.78419581" });
+                this.lookup.push({ ID: 448, AreaNameArabic: "النعايم الصناعية", AreaNameEnglish: "Al Naayem Industrial", X: "5262660.87191562", Y: "3404623.28164" });
+                this.lookup.push({ ID: 418, AreaNameArabic: "برالجهراء", AreaNameEnglish: "Bar Al-Jahra", X: "5270265.44436348", Y: "3440737.11353135" });
+                this.lookup.push({ ID: 324, AreaNameArabic: "أبو الحصانية", AreaNameEnglish: "Abu Hassaniah", X: "5355648.21862851", Y: "3400837.73420948" });
+                this.lookup.push({ ID: 326, AreaNameArabic: "ضاحية أبو فطيرة", AreaNameEnglish: "Abu Ftaira", X: "5354627.27101099", Y: "3400782.79056042" });
+                this.lookup.push({ ID: 305, AreaNameArabic: "الفنطاس", AreaNameEnglish: "Al-Fintas", X: "5356505.05776776", Y: "3397398.7479862" });
+                this.lookup.push({ ID: 301, AreaNameArabic: "العقيلة", AreaNameEnglish: "Egaila", X: "5354731.81567791", Y: "3397421.91646125" });
+                this.lookup.push({ ID: 430, AreaNameArabic: "ضاحية الفنيطيس", AreaNameEnglish: "Al-Fnaitees", X: "5353997.39845955", Y: "3403819.3442502" });
+                this.lookup.push({ ID: 910, AreaNameArabic: "الشدادية", AreaNameEnglish: "Al shadadyia", X: "5327596.87364381", Y: "3398892.11269782" });
+                this.lookup.push({ ID: 424, AreaNameArabic: "الصليبية الزراعية", AreaNameEnglish: "Sulaibiya Agricultural", X: "5318044.55889105", Y: "3407264.64967069" });
+                this.lookup.push({ ID: 350, AreaNameArabic: "رجم خشمان", AreaNameEnglish: "Rajim Khashman", X: "5325555.39788261", Y: "3398715.23591005" });
+                this.lookup.push({ ID: 438, AreaNameArabic: "عبدالله المبارك", AreaNameEnglish: "Abdullah Al-Mubarak", X: "5332637.45820866", Y: "3406180.89815479" });
+                this.lookup.push({ ID: 414, AreaNameArabic: "الروضتين", AreaNameEnglish: "Rawdatain", X: "5328130.81370265", Y: "3477318.66215506" });
+                this.lookup.push({ ID: 352, AreaNameArabic: "صباح الأحمد 1", AreaNameEnglish: "Sabah Al-Ahmad 1", X: "5350322.94554334", Y: "3350454.9334071" });
+                this.lookup.push({ ID: 354, AreaNameArabic: "صباح الأحمد 3", AreaNameEnglish: "Sabah Al-Ahmad 3", X: "5347489.21349372", Y: "3347496.77283117" });
+                this.lookup.push({ ID: 353, AreaNameArabic: "صباح الأحمد 2", AreaNameEnglish: "Sabah Al-Ahmad 2", X: "5349122.52473752", Y: "3349294.32632828" });
+                this.lookup.push({ ID: 355, AreaNameArabic: "صباح الأحمد 4", AreaNameEnglish: "Sabah Al-Ahmad 4", X: "5350938.90190536", Y: "3346116.59196276" });
+                this.lookup.push({ ID: 357, AreaNameArabic: "صباح الأحمد الخدمية", AreaNameEnglish: "Sabah Al-Ahmad Services", X: "5352979.068", Y: "3350870.29299999" });
+                this.lookup.push({ ID: 356, AreaNameArabic: "صباح الأحمد 5", AreaNameEnglish: "Sabah Al-Ahmad 5", X: "5352739.37281955", Y: "3347988.77237915" });
+                this.lookup.push({ ID: 358, AreaNameArabic: "صباح الأحمد الإستثمارية", AreaNameEnglish: "Sabah Al-Ahmad Investment", X: "5349777.10024425", Y: "3344659.12949661" });
+                this.lookup.push({ ID: 337, AreaNameArabic: "مزارع الوفرة ", AreaNameEnglish: "Wafra Farms", X: "5361411.01681159", Y: "3322682.12650936" });
+                this.lookup.push({ ID: 315, AreaNameArabic: "الوفرة", AreaNameEnglish: "Wafra", X: "5331914.51503784", Y: "3325150.7204895" });
+                this.lookup.push({ ID: 319, AreaNameArabic: "الوفرة الجديدة", AreaNameEnglish: "New Wafra", X: "5344734.15688365", Y: "3325942.43629498" });
+                this.lookup.push({ ID: 351, AreaNameArabic: "صباح الاحمد البحرية", AreaNameEnglish: "Sabah Al-Ahmad Al-marine", X: "5381739.88041441", Y: "3331152.04733928" });
+                this.lookup.push({ ID: 329, AreaNameArabic: "النويصيب", AreaNameEnglish: "Al-Nuwaiseeb", X: "5385307.85037612", Y: "3321411.85068524" });
+                this.lookup.push({ ID: 321, AreaNameArabic: "بر محافظة الأحمدي", AreaNameEnglish: "Ahmadi Governorate Desert", X: "5331968.34585061", Y: "3356406.71172223" });
+                this.lookup.push({ ID: 426, AreaNameArabic: "ميناء الدوحة", AreaNameEnglish: "Mina Doha", X: "5321479.44975654", Y: "3421516.73486992" });
+                this.lookup.push({ ID: 401, AreaNameArabic: "الدوحة", AreaNameEnglish: "Doha", X: "5321499.26688031", Y: "3416319.23649998" });
+                this.lookup.push({ ID: 224, AreaNameArabic: "الرقعي", AreaNameEnglish: "Riggai", X: "5334072.74481351", Y: "3414533.28705538" });
+                this.lookup.push({ ID: 904, AreaNameArabic: "مدينة صباح السالم الجامعية", AreaNameEnglish: "Sabah Al-Salem University City", X: "5331972.3137884", Y: "3408407.08419051" });
+                this.lookup.push({ ID: 429, AreaNameArabic: "النسيم", AreaNameEnglish: "Nasseem", X: "5307456.37519399", Y: "3416324.49860916" });
+
+                this.fire("load", { resources: this.lookup });
+            },
+
+            getAreaInfoByName: function (aAreaName) {
+
+                var FoundAreas = $.grep(this.lookup, function (Area) { return Area.AreaNameEnglish.toLowerCase() == aAreaName.toLowerCase() || Area.AreaNameArabic == aAreaName; });
+                return FoundAreas;
+            }
+
+        });
+
+    </script>
+
+</dom-module>

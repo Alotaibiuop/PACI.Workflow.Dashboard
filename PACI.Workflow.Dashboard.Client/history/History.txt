@@ -1,0 +1,99 @@
+﻿V1.1@27-04-2016
+
+- Renamed Total Jobs y-axis to Total Actions in the Employees Performance Report
+- Fixed menu overlapping with map legend on mobile screens
+- Fixed user favorites from/to datetimes when user generates a report using the datetime slider (last 10 days for example)
+- Destroying and constructions different types of charts are enhanced
+- Managed requests to the server: cancel pending (previous) requests when user change tabs in the main dashboard for example
+- Minor UI Enhancements
+- Updated Polymer elements to the latest stable releases
+- Removed the main dashboard auto refresh for performance as the progress bar is manipulating the DOM every second
+- Implemented Field Researchers Last Locations on the main dashboard to see the latest actions taken by all field researchers
+- Maps are resizable on the main dashboard and area reports
+- Enhanced toggling on and off different map layers (field researchers, areas class break, areas size break) on the main dashboard where user will be able to toggle one or all layers on the map. By default field researchers and areas class break renderer is visible.
+
+V1.0@13-01-2016
+
+- Removed side padding from the main dashboard for visual reasons on ipad devices
+- Re-implemented tables. jQuery data tables were implemented instead of vaadin-grid
+- Few bug fixes
+- Implemented two new reports: Job Creators Detailed Peformance and Employees Peformance
+- Added top five employees performance to the main dashboard (today, yesterday, last month)
+- Enhanced switching renderers on the map
+- Upgraded Polymer elements to the latest versions
+
+V0.9@08-12-2015
+
+- Noink for paper-tabs for performance
+- Better cards visualization
+- Enhance startup loading performance
+- Promoted the map in the main dashboard
+- Enhanced login screen to mobile devices
+- Main dashboard refresh button as user scrolls down
+
+V0.8@12-11-2015
+
+Bug fixes:
+
+- Main Dashboard does not work on IE11+
+
+Featues:
+
+- Enhance loading the Login Screen on startup by conditionally loading web components polyfil
+- Enhanced the main dashboard layout
+
+V0.7@3-11-2015
+
+Features:
+
+- Smoothened Class Break Renderer colors to better visualize the concentration of jobs on Kuwait neighborhoods
+- Updated Polymer elements to the latest stable release
+- Area Performance Report includes a map report in addition to the existing chart reports
+
+V0.6@11-1-2015
+
+Features:
+
+- Added two types of renderers (class break and blend renderers) on the map of the main dashboard (today, yesterday, last month)
+
+V0.5@27-10-2015
+
+- Job Types Detailed Average Performance Reports Enhancements includes showing a flat horizontal stacked bar for one or more Job Types, or a pie chart for one Job Type with the capabilities of drilling down for details 
+- Enhanced swipe layer to be shut at application startup and enhanced its handler visuals
+- Improved handling ESRI JavaScript API Loading of extra modules such as BlendRenderer, SwipeLayer, FeatureLayer, and InfoTemplate
+- Enhance Info Template visuals
+
+V0.4@25-10-2015
+
+Features:
+
+- Polished the login screen and added a scale up animation on entry
+- Converted refresh remaining seconds to mm:ss format instead of number of seconds
+- Included a missing statuses (مرتجع من التدقيق) to fetch the number and percentage of rejected jobs
+- Modified few main dashboard KPIs titles to match the output such as Top Employees modified to Top Jobs Creators, Top Field Researchers to Top Assigned Field Researchers
+- Modified Employees Performance Title to Job Creators Performance
+- Enhanced Charts Visuals and unified grid lines
+- Added a map to the main dashboard to show the all time top working area and another map that shows a blended visual of assigned jobs to each area in yesterday, today, last month tabs
+
+Bug Fixes:
+
+- Invalid rejected jobs percentage when number of jobs is zero
+
+V0.3@21-10-2015
+
+Features:
+
+- Added new dashboards in addition to today's dashboard that includes yesterday and last month
+- Added new KPIs that includes job categories performance, top field researcher, number and percentage of jobs rejected
+- Added new gauges that indicates the average performance in days for each job category addresses, boundary updates, establishments, and residences
+- Enhanced charts title to be visible prior to dashboard reloading
+- Enhanced performance not to fetch all data at once for all dashboards where dashboard is fetched on demand
+
+V0.2@19-10-2015
+
+Bug Fixes
+
+- Fix today's main dashboard (total, active, closed) jobs
+- Enhance tooltips on charts
+
+V0.1@18-10-2015

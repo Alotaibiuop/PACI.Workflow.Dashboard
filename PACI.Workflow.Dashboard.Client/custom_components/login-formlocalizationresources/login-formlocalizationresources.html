@@ -1,0 +1,53 @@
+﻿<dom-module id="login-formlocalizationresources">
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "login-formlocalizationresources",
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                }
+            },
+
+            attached: function () {
+
+                this.initializeLocalization();
+            },
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    this.initializeLocalization();
+                });
+            },
+
+            initializeLocalization: function () {
+
+                this.resources = {
+
+                    version: this.language == "ar" ? "v1.1" : "v1.1",
+                    requestfailed: this.language == "ar" ? "لم يتم الإتصال" : "Unable to process request",
+                    connecting: this.language == "ar" ? "جاري الإتصال" : "Connecting",
+                    accessdenied: this.language == "ar" ? "لا يوجد صلاحية الدخول" : "Access denied",
+                    loginheadertext: this.language == "ar" ? "الهيئة العامة للمعلومات المدنية" : "PACI Workflow Dashboard",
+                    usernametext: this.language == "ar" ? "إسم المستخدم" : "Username",
+                    passwordtext: this.language == "ar" ? "كلمة المرور" : "Password",
+                    loginbuttontext: this.language == "ar" ? "دخول" : "Login",
+                    usernamepasswordrequired: this.language == "ar" ? "أدخل إسم المستخدم وكلمة المرور" : "Username and Password required",
+                    invalidusernamepassword: this.language == "ar" ? "إسم المستخدم أو كلمة المرور غير صحيحة أو لا يوجد صلاحية الدخول" : "Your username or password was incorrect or account inactive",
+                    redirecting: this.language == "ar" ? "تم الإتصال" : "Redirecting",
+                }
+
+                this.fire("load", { resources: this.resources });
+            }
+
+        });
+
+    </script>
+
+</dom-module>

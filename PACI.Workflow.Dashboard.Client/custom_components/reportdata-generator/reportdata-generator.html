@@ -1,0 +1,1229 @@
+﻿<dom-module id="reportdata-generator">
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "reportdata-generator",
+
+            properties: {
+                ajaxrequests: {
+                    type: Array,
+                    value: []
+                }
+            },
+
+            attached: function () {
+
+                this.async(function () {
+
+                    this.initializeSOAP();
+                });
+            },
+
+            initializeSOAP: function () {
+
+                var Context = this;
+
+                $.soap({
+                    url: Configuration.ServerURL,
+                    appendMethodToURL: false,
+                    envAttributes: {
+                        'xmlns': 'http://tempuri.org/',
+                        'xmlns:soap': 'http://schemas.xmlsoap.org/soap/envelope/',
+                        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                        'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
+                        'xmlns:s': 'http://schemas.xmlsoap.org/soap/envelope/',
+                        'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'
+                    },
+                    error: function (aSOAPResponse) {
+
+                        if (aSOAPResponse.status.toUpperCase() == "CANCELED")
+                            return;
+
+                        Context.fire("iron-signal", { name: "soaprequestfail", data: aSOAPResponse.httpText });
+                    }
+                });
+            },
+
+            getReportData: function (aRequestedReport, aLocalizationResources) {
+
+                if (this.resources == null)
+                    this.resources = aLocalizationResources;
+
+                var Context = this;
+                var Period = aRequestedReport.filtercriteria.isdaterange == true ? { FromTime: EncodeXML(moment(aRequestedReport.filtercriteria.datefrom).toISOString()), ToTime: EncodeXML(moment(aRequestedReport.filtercriteria.dateto).toISOString()) } : { NumberOfDays: aRequestedReport.filtercriteria.lastnumdays };
+
+                $.soap({
+
+                    method: aRequestedReport.targetreportoperation, SOAPAction: Configuration.SOAPActionURL + "/" + aRequestedReport.targetreportoperation,
+                    data: {
+                        aUserAccount: {
+                            ID: aRequestedReport.user.id,
+                            IsActive: aRequestedReport.user.isactive,
+                            IsLDAP: aRequestedReport.user.isldap,
+                            Name: aRequestedReport.user.name,
+                            UserName: aRequestedReport.user.username
+                        },
+                        aReportParameters: {
+                            Areas: aRequestedReport.filtercriteria.encodedselectedareas,
+                            EmployeeNames: aRequestedReport.filtercriteria.encodedselectedemployees,
+                            JobCategories: aRequestedReport.filtercriteria.encodedselectedjobcategories,
+                            JobStatuses: aRequestedReport.filtercriteria.encodedselectedjobstatuses,
+                            JobTypes: aRequestedReport.filtercriteria.encodedselectedjobtypes,
+                            Period: Period
+                        },
+                        all: true,
+                        less: true,
+                        more: true,
+                    },
+                    beforeSend: function (aSOAPEnvelope) {
+
+                        var SOAPBodyData = aSOAPEnvelope.bodies[0].children;
+                        for (var i = 0; i < SOAPBodyData.length; i++) {
+
+                            if (SOAPBodyData[i].name.toUpperCase() == "AREPORTPARAMETERS") {
+
+                                var aReportParameters = SOAPBodyData[i].children;
+
+                                for (var j = 0; j < aReportParameters.length; j++) {
+
+                                    if (aReportParameters[j].name.toUpperCase() == "PERIOD") {
+
+                                        if (aRequestedReport.filtercriteria.isdaterange == true) {
+
+                                            aReportParameters[j].attributes["i:type"] = "FixedDateRange";
+                                        }
+                                        else {
+
+                                            aReportParameters[j].attributes["i:type"] = "DynamicDateRange";
+                                        }
+
+                                        break;
+                                    }
+                                }
+
+                                break;
+                            }
+                        }
+
+                        var xhr = $.soap({
+                            method: aRequestedReport.targetreportoperation, SOAPAction: Configuration.SOAPActionURL + "/" + aRequestedReport.targetreportoperation,
+                            data: aSOAPEnvelope.toString(),
+                            success: function (aResponse) {
+
+                                var DataTable = [];
+                                var HasData = false;
+
+                                if (aRequestedReport.targetreportoperation == "GetDailyPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetDailyPerformanceReportResponse.GetDailyPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.DailyPerformance) {
+
+                                            if (OResult.Result.DailyPerformance.length) {
+
+                                                var DailyPerformanceSortedReportItems = OResult.Result.DailyPerformance.sort(function (a, b) {
+
+                                                    return new Date(a.Date) - new Date(b.Date);
+                                                });
+
+                                                for (var i = 0; i < DailyPerformanceSortedReportItems.length; i++) {
+
+                                                    DataTable.push({
+                                                        "CreationDate": DailyPerformanceSortedReportItems[i].Date,
+                                                        "JobsCount": DailyPerformanceSortedReportItems[i].JobsCount
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "CreationDate": OResult.Result.DailyPerformance.Date,
+                                                    "JobsCount": OResult.Result.DailyPerformance.JobsCount
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetDailyJobCategoryPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetDailyJobCategoryPerformanceReportResponse.GetDailyJobCategoryPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.DailyJobCategoryPerformance) {
+
+                                            if (OResult.Result.DailyJobCategoryPerformance.length) {
+
+                                                var JobCategories = [];
+                                                var Dates = [];
+
+                                                var DailyJobCategoryPerformanceSortedReportItems = OResult.Result.DailyJobCategoryPerformance.sort(function (a, b) {
+
+                                                    return new Date(a.Date) - new Date(b.Date);
+                                                });
+
+                                                for (var i = 0; i < DailyJobCategoryPerformanceSortedReportItems.length; i++) {
+
+                                                    if (JobCategories.indexOf(DailyJobCategoryPerformanceSortedReportItems[i].JobCategoryName) < 0)
+                                                        JobCategories.push(DailyJobCategoryPerformanceSortedReportItems[i].JobCategoryName);
+                                                }
+
+                                                for (var i = 0; i < DailyJobCategoryPerformanceSortedReportItems.length; i++) {
+
+                                                    if (Dates.indexOf(DailyJobCategoryPerformanceSortedReportItems[i].Date) < 0)
+                                                        Dates.push(DailyJobCategoryPerformanceSortedReportItems[i].Date);
+                                                }
+
+                                                for (var i = 0; i < Dates.length; i++) {
+
+                                                    for (var j = 0; j < JobCategories.length; j++) {
+
+                                                        DataTable.push({
+                                                            "CreationDate": Dates[i],
+                                                            "JobCategoryName": JobCategories[j],
+                                                            "JobsCount": 0
+                                                        });
+                                                    }
+                                                }
+
+                                                for (var i = 0; i < DailyJobCategoryPerformanceSortedReportItems.length; i++) {
+
+                                                    for (var j = 0; j < DataTable.length; j++) {
+
+                                                        if (DataTable[j].CreationDate == DailyJobCategoryPerformanceSortedReportItems[i].Date && DataTable[j].JobCategoryName == DailyJobCategoryPerformanceSortedReportItems[i].JobCategoryName) {
+
+                                                            DataTable[j].JobsCount = DailyJobCategoryPerformanceSortedReportItems[i].JobsCount;
+                                                            HasData = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "CreationDate": OResult.Result.DailyJobCategoryPerformance.Date,
+                                                    "JobCategoryName": OResult.Result.DailyJobCategoryPerformance.JobCategoryName,
+                                                    "JobsCount": OResult.Result.DailyJobCategoryPerformance.JobsCount
+                                                });
+                                            }
+
+                                            if (HasData) {
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                            else {
+                                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetDailyJobTypePerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetDailyJobTypePerformanceReportResponse.GetDailyJobTypePerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.DailyJobTypePerformance) {
+
+                                            if (OResult.Result.DailyJobTypePerformance.length) {
+
+                                                var JobTypes = [];
+                                                var Dates = [];
+
+                                                var DailyJobTypePerformanceSortedReportItems = OResult.Result.DailyJobTypePerformance.sort(function (a, b) {
+
+                                                    return new Date(a.Date) - new Date(b.Date);
+                                                });
+
+                                                for (var i = 0; i < DailyJobTypePerformanceSortedReportItems.length; i++) {
+
+                                                    if (JobTypes.indexOf(DailyJobTypePerformanceSortedReportItems[i].JobTypeName) < 0)
+                                                        JobTypes.push(DailyJobTypePerformanceSortedReportItems[i].JobTypeName);
+                                                }
+
+                                                for (var i = 0; i < DailyJobTypePerformanceSortedReportItems.length; i++) {
+
+                                                    if (Dates.indexOf(DailyJobTypePerformanceSortedReportItems[i].Date) < 0)
+                                                        Dates.push(DailyJobTypePerformanceSortedReportItems[i].Date);
+                                                }
+
+                                                for (var i = 0; i < Dates.length; i++) {
+
+                                                    for (var j = 0; j < JobTypes.length; j++) {
+
+                                                        DataTable.push({
+                                                            "CreationDate": Dates[i],
+                                                            "JobTypeName": JobTypes[j],
+                                                            "JobsCount": 0
+                                                        });
+                                                    }
+                                                }
+
+                                                for (var i = 0; i < DailyJobTypePerformanceSortedReportItems.length; i++) {
+
+                                                    for (var j = 0; j < DataTable.length; j++) {
+
+                                                        if (DataTable[j].CreationDate == DailyJobTypePerformanceSortedReportItems[i].Date && DataTable[j].JobTypeName == DailyJobTypePerformanceSortedReportItems[i].JobTypeName) {
+
+                                                            DataTable[j].JobsCount = DailyJobTypePerformanceSortedReportItems[i].JobsCount;
+                                                            HasData = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "CreationDate": OResult.Result.DailyJobTypePerformance.Date,
+                                                    "JobCategoryName": OResult.Result.DailyJobTypePerformance.JobCategoryName,
+                                                    "JobsCount": OResult.Result.DailyJobTypePerformance.JobsCount
+                                                });
+                                            }
+
+                                            if (HasData) {
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                            else {
+
+                                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetJobCategoryPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetJobCategoryPerformanceReportResponse.GetJobCategoryPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.JobCategoryPerformance) {
+
+                                            if (OResult.Result.JobCategoryPerformance.length) {
+
+                                                for (var i = 0; i < OResult.Result.JobCategoryPerformance.length; i++) {
+
+                                                    DataTable.push({
+                                                        "JobCategoryName": OResult.Result.JobCategoryPerformance[i].JobCategoryName,
+                                                        "JobsCount": OResult.Result.JobCategoryPerformance[i].JobsCount
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "JobCategoryName": OResult.Result.JobCategoryPerformance.JobCategoryName,
+                                                    "JobsCount": OResult.Result.JobCategoryPerformance.JobsCount
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetJobTypePerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetJobTypePerformanceReportResponse.GetJobTypePerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.JobTypePerformance) {
+
+                                            if (OResult.Result.JobTypePerformance.length) {
+
+                                                for (var i = 0; i < OResult.Result.JobTypePerformance.length; i++) {
+
+                                                    DataTable.push({
+                                                        "JobTypeName": OResult.Result.JobTypePerformance[i].JobTypeName,
+                                                        "JobsCount": OResult.Result.JobTypePerformance[i].JobsCount
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "JobTypeName": OResult.Result.JobTypePerformance.JobTypeName,
+                                                    "JobsCount": OResult.Result.JobTypePerformance.JobsCount
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetJobCategoryStatusPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetJobCategoryStatusPerformanceReportResponse.GetJobCategoryStatusPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.JobCategoryStatusPerformance) {
+
+                                            if (OResult.Result.JobCategoryStatusPerformance.length) {
+
+                                                var JobCategories = [];
+                                                var JobStatuses = [];
+
+                                                for (var i = 0; i < OResult.Result.JobCategoryStatusPerformance.length; i++) {
+
+                                                    if (JobCategories.indexOf(OResult.Result.JobCategoryStatusPerformance[i].JobCategoryName) < 0)
+                                                        JobCategories.push(OResult.Result.JobCategoryStatusPerformance[i].JobCategoryName);
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.JobCategoryStatusPerformance.length; i++) {
+
+                                                    if (JobStatuses.indexOf(OResult.Result.JobCategoryStatusPerformance[i].JobStatus) < 0)
+                                                        JobStatuses.push(OResult.Result.JobCategoryStatusPerformance[i].JobStatus);
+                                                }
+
+                                                for (var i = 0; i < JobCategories.length; i++) {
+
+                                                    for (var j = 0; j < JobStatuses.length; j++) {
+
+                                                        DataTable.push({
+                                                            "JobCategoryName": JobCategories[i],
+                                                            "JobStatus": JobStatuses[j],
+                                                            "JobsCount": 0
+                                                        });
+                                                    }
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.JobCategoryStatusPerformance.length; i++) {
+
+                                                    for (var j = 0; j < DataTable.length; j++) {
+
+                                                        if (DataTable[j].JobCategoryName == OResult.Result.JobCategoryStatusPerformance[i].JobCategoryName && DataTable[j].JobStatus == OResult.Result.JobCategoryStatusPerformance[i].JobStatus) {
+
+                                                            DataTable[j].JobsCount = OResult.Result.JobCategoryStatusPerformance[i].JobsCount;
+                                                            HasData = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "JobCategoryName": OResult.Result.JobCategoryStatusPerformance.JobCategoryName,
+                                                    "JobStatus": OResult.Result.JobCategoryStatusPerformance.JobStatus,
+                                                    "JobsCount": 0
+                                                });
+                                            }
+
+                                            if (HasData) {
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                            else {
+                                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetJobTypeStatusPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetJobTypeStatusPerformanceReportResponse.GetJobTypeStatusPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.JobTypeStatusPerformance) {
+
+                                            if (OResult.Result.JobTypeStatusPerformance.length) {
+
+                                                var JobCategories = [];
+                                                var JobStatuses = [];
+
+                                                for (var i = 0; i < OResult.Result.JobTypeStatusPerformance.length; i++) {
+
+                                                    if (JobCategories.indexOf(OResult.Result.JobTypeStatusPerformance[i].JobTypeName) < 0)
+                                                        JobCategories.push(OResult.Result.JobTypeStatusPerformance[i].JobTypeName);
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.JobTypeStatusPerformance.length; i++) {
+
+                                                    if (JobStatuses.indexOf(OResult.Result.JobTypeStatusPerformance[i].JobStatus) < 0)
+                                                        JobStatuses.push(OResult.Result.JobTypeStatusPerformance[i].JobStatus);
+                                                }
+
+                                                for (var i = 0; i < JobCategories.length; i++) {
+
+                                                    for (var j = 0; j < JobStatuses.length; j++) {
+
+                                                        DataTable.push({
+                                                            "JobTypeName": JobCategories[i],
+                                                            "JobStatus": JobStatuses[j],
+                                                            "JobsCount": 0
+                                                        });
+                                                    }
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.JobTypeStatusPerformance.length; i++) {
+
+                                                    for (var j = 0; j < DataTable.length; j++) {
+
+                                                        if (DataTable[j].JobTypeName == OResult.Result.JobTypeStatusPerformance[i].JobTypeName && DataTable[j].JobStatus == OResult.Result.JobTypeStatusPerformance[i].JobStatus) {
+
+                                                            DataTable[j].JobsCount = OResult.Result.JobTypeStatusPerformance[i].JobsCount;
+                                                            HasData = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "JobTypeName": OResult.Result.JobTypeStatusPerformance.JobTypeName,
+                                                    "JobStatus": OResult.Result.JobTypeStatusPerformance.JobStatus,
+                                                    "JobsCount": 0
+                                                });
+                                            }
+
+                                            if (HasData) {
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                            else {
+                                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetOfficeUsersPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetOfficeUsersPerformanceReportResponse.GetOfficeUsersPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.OfficeUserPerformance) {
+
+                                            if (OResult.Result.OfficeUserPerformance.length) {
+
+                                                for (var i = 0; i < OResult.Result.OfficeUserPerformance.length; i++) {
+
+                                                    DataTable.push({
+                                                        "UserFullName": OResult.Result.OfficeUserPerformance[i].UserFullName,
+                                                        "JobsCount": OResult.Result.OfficeUserPerformance[i].JobsCount
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "UserFullName": OResult.Result.OfficeUserPerformance.UserFullName,
+                                                    "JobsCount": OResult.Result.OfficeUserPerformance.JobsCount
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetOfficeUsersPerformanceDetailedReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetOfficeUsersPerformanceDetailedReportResponse.GetOfficeUsersPerformanceDetailedReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.OfficeUserPerformanceDetailed) {
+
+                                            if (OResult.Result.OfficeUserPerformanceDetailed.length) {
+
+                                                var UserNames = [];
+                                                var JobTypeNames = [];
+
+                                                for (var i = 0; i < OResult.Result.OfficeUserPerformanceDetailed.length; i++) {
+
+                                                    if (UserNames.indexOf(OResult.Result.OfficeUserPerformanceDetailed[i].UserFullName) < 0)
+                                                        UserNames.push(OResult.Result.OfficeUserPerformanceDetailed[i].UserFullName);
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.OfficeUserPerformanceDetailed.length; i++) {
+
+                                                    if (JobTypeNames.indexOf(OResult.Result.OfficeUserPerformanceDetailed[i].JobTypeName) < 0)
+                                                        JobTypeNames.push(OResult.Result.OfficeUserPerformanceDetailed[i].JobTypeName);
+                                                }
+
+                                                for (var i = 0; i < UserNames.length; i++) {
+
+                                                    for (var j = 0; j < JobTypeNames.length; j++) {
+
+                                                        DataTable.push({
+                                                            "UserFullName": UserNames[i],
+                                                            "JobTypeName": JobTypeNames[j],
+                                                            "JobsCount": 0
+                                                        });
+                                                    }
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.OfficeUserPerformanceDetailed.length; i++) {
+
+                                                    for (var j = 0; j < DataTable.length; j++) {
+
+                                                        if (DataTable[j].UserFullName == OResult.Result.OfficeUserPerformanceDetailed[i].UserFullName && DataTable[j].JobTypeName == OResult.Result.OfficeUserPerformanceDetailed[i].JobTypeName) {
+
+                                                            DataTable[j].JobsCount = OResult.Result.OfficeUserPerformanceDetailed[i].JobsCount;
+                                                            HasData = true;
+                                                        }
+                                                    }
+                                                }
+
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "UserFullName": OResult.Result.OfficeUserPerformanceDetailed.UserFullName,
+                                                    "JobTypeName": OResult.Result.OfficeUserPerformanceDetailed.JobTypeName,
+                                                    "JobsCount": 0
+                                                });
+                                            }
+
+                                            if (HasData) {
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                            else {
+                                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetOfficeUsersPerformanceDetailed") {
+
+                                    var OResult = aResponse.toJSON().Body.GetOfficeUsersPerformanceDetailedResponse.GetOfficeUsersPerformanceDetailedResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.OfficeUsersPerformanceDetailed) {
+
+                                            if (OResult.Result.OfficeUsersPerformanceDetailed.length) {
+
+                                                var UserNames = [];
+                                                var JobActions = [];
+
+                                                for (var i = 0; i < OResult.Result.OfficeUsersPerformanceDetailed.length; i++) {
+
+                                                    if (UserNames.indexOf(OResult.Result.OfficeUsersPerformanceDetailed[i].FULL_NAME) < 0)
+                                                        UserNames.push(OResult.Result.OfficeUsersPerformanceDetailed[i].FULL_NAME);
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.OfficeUsersPerformanceDetailed.length; i++) {
+
+                                                    if (JobActions.indexOf(OResult.Result.OfficeUsersPerformanceDetailed[i].JobAction) < 0)
+                                                        JobActions.push(OResult.Result.OfficeUsersPerformanceDetailed[i].JobAction);
+                                                }
+
+                                                for (var i = 0; i < UserNames.length; i++) {
+
+                                                    for (var j = 0; j < JobActions.length; j++) {
+
+                                                        DataTable.push({
+                                                            "UserFullName": UserNames[i],
+                                                            "JobAction": JobActions[j],
+                                                            "JobsCount": 0
+                                                        });
+                                                    }
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.OfficeUsersPerformanceDetailed.length; i++) {
+
+                                                    for (var j = 0; j < DataTable.length; j++) {
+
+                                                        if (DataTable[j].UserFullName == OResult.Result.OfficeUsersPerformanceDetailed[i].FULL_NAME && DataTable[j].JobAction == OResult.Result.OfficeUsersPerformanceDetailed[i].JobAction) {
+
+                                                            DataTable[j].JobsCount = OResult.Result.OfficeUsersPerformanceDetailed[i].JobCount;
+                                                            HasData = true;
+                                                        }
+                                                    }
+                                                }
+
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "UserFullName": OResult.Result.OfficeUsersPerformanceDetailed.FULL_NAME,
+                                                    "JobAction": OResult.Result.OfficeUsersPerformanceDetailed.JobAction,
+                                                    "JobsCount": 0
+                                                });
+                                            }
+
+                                            if (HasData) {
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                            else {
+                                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetAreaPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetAreaPerformanceReportResponse.GetAreaPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.AreaPerformance) {
+
+                                            if (OResult.Result.AreaPerformance.length) {
+
+                                                for (var i = 0; i < OResult.Result.AreaPerformance.length; i++) {
+
+                                                    DataTable.push({
+                                                        "AreaName": OResult.Result.AreaPerformance[i].AreaName,
+                                                        "JobsCount": OResult.Result.AreaPerformance[i].JobsCount
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "AreaName": OResult.Result.AreaPerformance.AreaName,
+                                                    "JobsCount": OResult.Result.AreaPerformance.JobsCount
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetStatusPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetStatusPerformanceReportResponse.GetStatusPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.StatusPerformance) {
+
+                                            if (OResult.Result.StatusPerformance.length) {
+
+                                                for (var i = 0; i < OResult.Result.StatusPerformance.length; i++) {
+
+                                                    DataTable.push({
+                                                        "Status": OResult.Result.StatusPerformance[i].Status,
+                                                        "JobsCount": OResult.Result.StatusPerformance[i].JobsCount
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "Status": OResult.Result.StatusPerformance.Status,
+                                                    "JobsCount": OResult.Result.StatusPerformance.JobsCount
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetAreaByStatusPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetAreaByStatusPerformanceReportResponse.GetAreaByStatusPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.AreaByStatusPerformance) {
+
+                                            if (OResult.Result.AreaByStatusPerformance.length) {
+
+                                                var Areas = [];
+                                                var Statuses = [];
+
+                                                for (var i = 0; i < OResult.Result.AreaByStatusPerformance.length; i++) {
+
+                                                    if (Areas.indexOf(OResult.Result.AreaByStatusPerformance[i].AreaName) < 0)
+                                                        Areas.push(OResult.Result.AreaByStatusPerformance[i].AreaName);
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.AreaByStatusPerformance.length; i++) {
+
+                                                    if (Statuses.indexOf(OResult.Result.AreaByStatusPerformance[i].Status) < 0)
+                                                        Statuses.push(OResult.Result.AreaByStatusPerformance[i].Status);
+                                                }
+
+                                                for (var i = 0; i < Areas.length; i++) {
+
+                                                    for (var j = 0; j < Statuses.length; j++) {
+
+                                                        DataTable.push({
+                                                            "AreaName": Areas[i],
+                                                            "Status": Statuses[j],
+                                                            "JobsCount": 0
+                                                        });
+                                                    }
+                                                }
+
+                                                for (var i = 0; i < OResult.Result.AreaByStatusPerformance.length; i++) {
+
+                                                    for (var j = 0; j < DataTable.length; j++) {
+
+                                                        if (DataTable[j].AreaName == OResult.Result.AreaByStatusPerformance[i].AreaName && DataTable[j].Status == OResult.Result.AreaByStatusPerformance[i].Status) {
+
+                                                            DataTable[j].JobsCount = OResult.Result.AreaByStatusPerformance[i].JobsCount;
+                                                            HasData = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "AreaName": OResult.Result.AreaByStatusPerformance.AreaName,
+                                                    "Status": OResult.Result.JobCategoryStatusPerformance.Status,
+                                                    "JobsCount": 0
+                                                });
+                                            }
+
+                                            if (HasData) {
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                            else {
+                                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                                Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                            }
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetFieldResearcherPerformanceReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetFieldResearcherPerformanceReportResponse.GetFieldResearcherPerformanceReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.FieldResearcherPerformance) {
+
+                                            if (OResult.Result.FieldResearcherPerformance.length) {
+
+                                                for (var i = 0; i < OResult.Result.FieldResearcherPerformance.length; i++) {
+
+                                                    DataTable.push({
+                                                        "FieldResearcher": OResult.Result.FieldResearcherPerformance[i].FieldResearcher,
+                                                        "JobsCount": OResult.Result.FieldResearcherPerformance[i].JobsCount
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "FieldResearcher": OResult.Result.FieldResearcherPerformance.FieldResearcher,
+                                                    "JobsCount": OResult.Result.FieldResearcherPerformance.JobsCount
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetJobCategoryAvgPerformanceReportSummary") {
+
+                                    var OResult = aResponse.toJSON().Body.GetJobCategoryAvgPerformanceReportSummaryResponse.GetJobCategoryAvgPerformanceReportSummaryResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.JobCategoryAvgPerformanceSummary) {
+
+                                            if (OResult.Result.JobCategoryAvgPerformanceSummary.length) {
+
+                                                for (var i = 0; i < OResult.Result.JobCategoryAvgPerformanceSummary.length; i++) {
+
+                                                    DataTable.push({
+                                                        "JobAvg": OResult.Result.JobCategoryAvgPerformanceSummary[i].JobAvg,
+                                                        "JobCategoryName": OResult.Result.JobCategoryAvgPerformanceSummary[i].JobCategoryName,
+                                                        "JobMax": OResult.Result.JobCategoryAvgPerformanceSummary[i].JobMax,
+                                                        "JobMin": OResult.Result.JobCategoryAvgPerformanceSummary[i].JobMin,
+                                                        "JobsCount": OResult.Result.JobCategoryAvgPerformanceSummary[i].JobsCount,
+                                                        "Perc": OResult.Result.JobCategoryAvgPerformanceSummary[i].Perc,
+                                                        "TypeID": OResult.Result.JobCategoryAvgPerformanceSummary[i].typeID
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "JobAvg": OResult.Result.JobCategoryAvgPerformanceSummary.JobAvg,
+                                                    "JobCategoryName": OResult.Result.JobCategoryAvgPerformanceSummary.JobCategoryName,
+                                                    "JobMax": OResult.Result.JobCategoryAvgPerformanceSummary.JobMax,
+                                                    "JobMin": OResult.Result.JobCategoryAvgPerformanceSummary.JobMin,
+                                                    "JobsCount": OResult.Result.JobCategoryAvgPerformanceSummary.JobsCount,
+                                                    "Perc": OResult.Result.JobCategoryAvgPerformanceSummary.Perc,
+                                                    "TypeID": OResult.Result.JobCategoryAvgPerformanceSummary[i].typeID
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetJobTypeAvgPerformanceReportSummary") {
+
+                                    var OResult = aResponse.toJSON().Body.GetJobTypeAvgPerformanceReportSummaryResponse.GetJobTypeAvgPerformanceReportSummaryResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.JobTypeAvgPerformanceSummary) {
+
+                                            if (OResult.Result.JobTypeAvgPerformanceSummary.length) {
+
+                                                for (var i = 0; i < OResult.Result.JobTypeAvgPerformanceSummary.length; i++) {
+
+                                                    DataTable.push({
+                                                        "JobAvg": OResult.Result.JobTypeAvgPerformanceSummary[i].JobAvg,
+                                                        "JobTypeName": OResult.Result.JobTypeAvgPerformanceSummary[i].JobTypeName,
+                                                        "JobMax": OResult.Result.JobTypeAvgPerformanceSummary[i].JobMax,
+                                                        "JobMin": OResult.Result.JobTypeAvgPerformanceSummary[i].JobMin,
+                                                        "JobsCount": OResult.Result.JobTypeAvgPerformanceSummary[i].JobsCount,
+                                                        "TypeID": OResult.Result.JobTypeAvgPerformanceSummary[i].typeID
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "JobAvg": OResult.Result.JobTypeAvgPerformanceSummary.JobAvg,
+                                                    "JobTypeName": OResult.Result.JobTypeAvgPerformanceSummary.JobTypeName,
+                                                    "JobMax": OResult.Result.JobTypeAvgPerformanceSummary.JobMax,
+                                                    "JobMin": OResult.Result.JobTypeAvgPerformanceSummary.JobMin,
+                                                    "JobsCount": OResult.Result.JobTypeAvgPerformanceSummary.JobsCount,
+                                                    "TypeID": OResult.Result.JobTypeAvgPerformanceSummary[i].typeID
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetReportDetailsJobHistoryReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetReportDetailsJobHistoryReportResponse.GetReportDetailsJobHistoryReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.ReportDetailsJobHistoryReport) {
+
+                                            if (OResult.Result.ReportDetailsJobHistoryReport.length) {
+
+                                                for (var i = 0; i < OResult.Result.ReportDetailsJobHistoryReport.length; i++) {
+
+                                                    DataTable.push({
+                                                        "CreatorAll": OResult.Result.ReportDetailsJobHistoryReport[i].CreatorAll,
+                                                        "CreatorAllPer": OResult.Result.ReportDetailsJobHistoryReport[i].CreatorAllPer,
+                                                        "FRAll": OResult.Result.ReportDetailsJobHistoryReport[i].FRAll,
+                                                        "FRAllPer": OResult.Result.ReportDetailsJobHistoryReport[i].FRAllPer,
+                                                        "FollowUpAll": OResult.Result.ReportDetailsJobHistoryReport[i].FollowUpAll,
+                                                        "FollowUpAllPer": OResult.Result.ReportDetailsJobHistoryReport[i].FollowUpAllPer,
+                                                        "GISAll": OResult.Result.ReportDetailsJobHistoryReport[i].GISAll,
+                                                        "GISAllPer": OResult.Result.ReportDetailsJobHistoryReport[i].GISAllPer,
+                                                        "JobAvg": OResult.Result.ReportDetailsJobHistoryReport[i].JobAvg,
+                                                        "JobTypeName": OResult.Result.ReportDetailsJobHistoryReport[i].JobTypeName,
+                                                        "JobsCount": OResult.Result.ReportDetailsJobHistoryReport[i].JobsCount,
+                                                        "QCAll": OResult.Result.ReportDetailsJobHistoryReport[i].QCAll,
+                                                        "QCAllPer": OResult.Result.ReportDetailsJobHistoryReport[i].QCAllPer,
+                                                        "Status9": OResult.Result.ReportDetailsJobHistoryReport[i].Status9,
+                                                        "Status10": OResult.Result.ReportDetailsJobHistoryReport[i].Status10,
+                                                        "Status11": OResult.Result.ReportDetailsJobHistoryReport[i].Status11,
+                                                        "Status12": OResult.Result.ReportDetailsJobHistoryReport[i].Status12,
+                                                        "Status13": OResult.Result.ReportDetailsJobHistoryReport[i].Status13,
+                                                        "Status14": OResult.Result.ReportDetailsJobHistoryReport[i].Status14,
+                                                        "Status15": OResult.Result.ReportDetailsJobHistoryReport[i].Status15,
+                                                        "Status16": OResult.Result.ReportDetailsJobHistoryReport[i].Status16,
+                                                        "Status17": OResult.Result.ReportDetailsJobHistoryReport[i].Status17,
+                                                        "Status18": OResult.Result.ReportDetailsJobHistoryReport[i].Status18,
+                                                        "Status21": OResult.Result.ReportDetailsJobHistoryReport[i].Status21,
+                                                        "Status22": OResult.Result.ReportDetailsJobHistoryReport[i].Status22,
+                                                        "Status23": OResult.Result.ReportDetailsJobHistoryReport[i].Status23,
+                                                        "UpdateAll": OResult.Result.ReportDetailsJobHistoryReport[i].UpdateAll,
+                                                        "UpdateAllPer": OResult.Result.ReportDetailsJobHistoryReport[i].UpdateAllPer,
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "CreatorAll": OResult.Result.ReportDetailsJobHistoryReport.CreatorAll,
+                                                    "CreatorAllPer": OResult.Result.ReportDetailsJobHistoryReport.CreatorAllPer,
+                                                    "FRAll": OResult.Result.ReportDetailsJobHistoryReport.FRAll,
+                                                    "FRAllPer": OResult.Result.ReportDetailsJobHistoryReport.FRAllPer,
+                                                    "FollowUpAll": OResult.Result.ReportDetailsJobHistoryReport.FollowUpAll,
+                                                    "FollowUpAllPer": OResult.Result.ReportDetailsJobHistoryReport.FollowUpAllPer,
+                                                    "GISAll": OResult.Result.ReportDetailsJobHistoryReport.GISAll,
+                                                    "GISAllPer": OResult.Result.ReportDetailsJobHistoryReport.GISAllPer,
+                                                    "JobAvg": OResult.Result.ReportDetailsJobHistoryReport.JobAvg,
+                                                    "JobTypeName": OResult.Result.ReportDetailsJobHistoryReport.JobTypeName,
+                                                    "JobsCount": OResult.Result.ReportDetailsJobHistoryReport.JobsCount,
+                                                    "QCAll": OResult.Result.ReportDetailsJobHistoryReport.QCAll,
+                                                    "QCAllPer": OResult.Result.ReportDetailsJobHistoryReport.QCAllPer,
+                                                    "Status9": OResult.Result.ReportDetailsJobHistoryReport.Status9,
+                                                    "Status10": OResult.Result.ReportDetailsJobHistoryReport.Status10,
+                                                    "Status11": OResult.Result.ReportDetailsJobHistoryReport.Status11,
+                                                    "Status12": OResult.Result.ReportDetailsJobHistoryReport.Status12,
+                                                    "Status13": OResult.Result.ReportDetailsJobHistoryReport.Status13,
+                                                    "Status14": OResult.Result.ReportDetailsJobHistoryReport.Status14,
+                                                    "Status15": OResult.Result.ReportDetailsJobHistoryReport.Status15,
+                                                    "Status16": OResult.Result.ReportDetailsJobHistoryReport.Status16,
+                                                    "Status17": OResult.Result.ReportDetailsJobHistoryReport.Status17,
+                                                    "Status18": OResult.Result.ReportDetailsJobHistoryReport.Status18,
+                                                    "Status21": OResult.Result.ReportDetailsJobHistoryReport.Status21,
+                                                    "Status22": OResult.Result.ReportDetailsJobHistoryReport.Status22,
+                                                    "Status23": OResult.Result.ReportDetailsJobHistoryReport.Status23,
+                                                    "UpdateAll": OResult.Result.ReportDetailsJobHistoryReport.UpdateAll,
+                                                    "UpdateAllPer": OResult.Result.ReportDetailsJobHistoryReport.UpdateAllPer,
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else if (aRequestedReport.targetreportoperation == "GetUsersTrackingLastActionReport") {
+
+                                    var OResult = aResponse.toJSON().Body.GetUsersTrackingLastActionReportResponse.GetUsersTrackingLastActionReportResult;
+
+                                    if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                                        if (OResult.Result && OResult.Result.FieldResearchersData) {
+
+                                            if (OResult.Result.FieldResearchersData.length) {
+
+                                                for (var i = 0; i < OResult.Result.FieldResearchersData.length; i++) {
+
+                                                    DataTable.push({
+                                                        "Name": OResult.Result.FieldResearchersData[i].Name,
+                                                        "Username": OResult.Result.FieldResearchersData[i].Username,
+                                                        "LogTime": OResult.Result.FieldResearchersData[i].LocationInfos.FieldResearcherLocationInfo.LogTime,
+                                                        "Notes": OResult.Result.FieldResearchersData[i].LocationInfos.FieldResearcherLocationInfo.Notes,
+                                                        "X": OResult.Result.FieldResearchersData[i].LocationInfos.FieldResearcherLocationInfo.X,
+                                                        "Y": OResult.Result.FieldResearchersData[i].LocationInfos.FieldResearcherLocationInfo.Y
+                                                    });
+                                                }
+                                            }
+                                            else {
+
+                                                DataTable.push({
+                                                    "Name": OResult.Result.FieldResearchersData.Name,
+                                                    "Username": OResult.Result.FieldResearchersData.Username,
+                                                    "LogTime": OResult.Result.FieldResearchersData.LocationInfos.FieldResearcherLocationInfo.LogTime,
+                                                    "Notes": OResult.Result.FieldResearchersData.LocationInfos.FieldResearcherLocationInfo.Notes,
+                                                    "X": OResult.Result.FieldResearchersData.LocationInfos.FieldResearcherLocationInfo.X,
+                                                    "Y": OResult.Result.FieldResearchersData.LocationInfos.FieldResearcherLocationInfo.Y
+                                                });
+                                            }
+
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                        else {
+
+                                            Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                                            Context.fire("success", { DataSource: DataTable, Report: aRequestedReport });
+                                        }
+                                    }
+                                    else {
+
+                                        Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                                    }
+                                }
+
+                                else {
+
+                                    Context.fire("iron-signal", { name: "reportnotimplemented", data: Context.resources.reportnotimplemented });
+                                }
+                            }
+                        });
+
+                        Context.ajaxrequests.push(xhr);
+
+                        return false;
+                    }
+                });
+            },
+
+            cancelReports: function () {
+
+                for (var i = 0; i < this.ajaxrequests.length; i++) {
+
+                    this.ajaxrequests[i].abort();
+                }
+
+                this.ajaxrequests = [];
+            }
+
+        });
+
+    </script>
+
+</dom-module>

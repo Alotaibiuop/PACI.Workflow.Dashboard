@@ -1,0 +1,760 @@
+﻿<dom-module id="main-app">
+
+    <template>
+
+        <style include="shared-styles">
+        </style>
+
+        <style>
+            #phpDrawer, paper-menu {
+                background-color: #e9e6e6;
+            }
+
+            paper-card {
+                width: 100%;
+                background-color: #ffffff;
+            }
+
+            iron-icon {
+                color: gray;
+            }
+
+            .card-content {
+                margin-top: 10px;
+                min-height: 100px;
+                color: gray;
+                line-height: 28px;
+            }
+
+            .card-actions {
+                background-color: #F3F3F3;
+                position: absolute;
+                bottom: 0px;
+                right: 0px;
+                left: 0px;
+            }
+
+            .cardtoolbar {
+                background-color: #f4f4f4;
+                color: black;
+                font-size: 20px;
+            }
+        </style>
+
+        <localization-resources language="{{settings.language}}"
+                                on-load="initializeResources">
+        </localization-resources>
+
+        <iron-localstorage name="user-profile"
+                           value="{{user}}"
+                           on-iron-localstorage-load-empty="handleEmptyUserLocalStorage"
+                           on-iron-localstorage-load="handleUserLocalStorageLoad">
+        </iron-localstorage>
+
+        <iron-localstorage name="user-settings"
+                           value="{{settings}}">
+        </iron-localstorage>
+
+        <iron-localstorage id="ilUserFavoritesMainApp"
+                           name="user-favorites"
+                           value="{{rawuserfavorites}}"
+                           use-raw="true">
+        </iron-localstorage>
+
+        <iron-media-query query="(min-width: 770px)"
+                          query-matches="{{islargescreen}}">
+        </iron-media-query>
+
+        <iron-signals on-iron-signal-soaprequestfail="handleAppSignals"
+                      on-iron-signal-nodatafound="handleAppSignals"
+                      on-iron-signal-nodatafoundonmap="handleAppSignals"
+                      on-iron-signal-operationunsuccessful="handleAppSignals"
+                      on-iron-signal-invaliddates="handleAppSignals"
+                      on-iron-signal-reportnotimplemented="handleAppSignals"
+                      on-iron-signal-information="handleAppSignals">
+        </iron-signals>
+
+        <reportdata-generator id="reportDataGeneratorMainApp"
+                              language="{{settings.language}}"
+                              on-success="handleReportDataGeneratorSuccess">
+        </reportdata-generator>
+
+        <paper-toast id="ptReportMainApp" class="cursorpointer" on-tap="handleDismissToast">
+
+        </paper-toast>
+
+        <user-status language="{{settings.language}}" on-userstatus-changed="handleUserStatusChanged">
+
+        </user-status>
+
+        <paper-drawer-panel id="pdpMainApp" class="bgcolorwhite">
+            <paper-header-panel id="phpDrawer" drawer>
+                <paper-toolbar class="tall">
+                    <div class="flex middle textcenter"><img src="../../images/Logo.png" /></div>
+                    <div class="flex bottom textcenter"><span>{{resources.welcome}}</span>{{user.name}}<br /><paper-icon-button id="pibUserStatus" class="colorlightgreen bottom" icon="account-circle"></paper-icon-button>{{userstatus}}</div>
+                </paper-toolbar>
+                <paper-menu>
+                    <paper-item id="0" on-tap="handleMenuItemClick"><iron-icon icon="icons:dashboard"></iron-icon><span class$="{{menuiconpadding}}">{{resources.maindashboard}}</span></paper-item>
+                    <div class="separator">{{resources.performancereports}}</div>
+                    <paper-item id="1" on-tap="handleMenuItemClick"><iron-icon icon="icons:home"></iron-icon><span class$="{{menuiconpadding}}">{{resources.allperformancereports}}</span></paper-item>
+                    <paper-item id="2" filterclass="job" on-tap="handleMenuItemClick"><iron-icon icon="icons:work"></iron-icon><span class$="{{menuiconpadding}}">{{resources.jobsperformancereports}}</span></paper-item>
+                    <paper-item id="3" filterclass="jobcategory" on-tap="handleMenuItemClick"><iron-icon icon="icons:class"></iron-icon><span class$="{{menuiconpadding}}">{{resources.jobcategoriesperformancereports}}</span></paper-item>
+                    <paper-item id="4" filterclass="jobtype" on-tap="handleMenuItemClick"><iron-icon icon="icons:chrome-reader-mode"></iron-icon><span class$="{{menuiconpadding}}">{{resources.jobtypesperformancereports}}</span></paper-item>
+                    <paper-item id="5" filterclass="jobstatus" on-tap="handleMenuItemClick"><iron-icon icon="icons:alarm"></iron-icon><span class$="{{menuiconpadding}}">{{resources.jobstatusesperformancereports}}</span></paper-item>
+                    <paper-item id="6" filterclass="area" on-tap="handleMenuItemClick"><iron-icon icon="maps:place"></iron-icon><span class$="{{menuiconpadding}}">{{resources.areasperformancereports}}</span></paper-item>
+                    <paper-item id="7" filterclass="employee" on-tap="handleMenuItemClick"><iron-icon icon="social:person"></iron-icon><span class$="{{menuiconpadding}}">{{resources.employeesperformancereports}}</span></paper-item>
+                    <paper-item id="8" filterclass="fieldresearcher" on-tap="handleMenuItemClick"><iron-icon icon="notification:drive-eta"></iron-icon><span class$="{{menuiconpadding}}">{{resources.fieldresearchersperformancereports}}</span></paper-item>
+                    <paper-item id="9" filterclass="userfavorite" on-tap="handleMenuItemClick"><iron-icon icon="icons:favorite" class="colorlightred"></iron-icon><span class$="{{menuiconpadding}}">{{resources.favorites}}</span></paper-item>
+                    <div class="separator">{{resources.settings}}</div>
+                    <paper-item id="10" on-tap="handleMenuItemClick"><iron-icon icon="settings"></iron-icon><span class$="{{menuiconpadding}}">{{resources.settings}}</span></paper-item>
+                    <div class="separator"></div>
+                    <paper-item class="colorlightred" on-tap="handleMenuItemLogoutClick"><iron-icon icon="icons:power-settings-new"></iron-icon><span class$="{{menuiconpadding}}">{{resources.logout}}</span></paper-item>
+                </paper-menu>
+            </paper-header-panel>
+            <paper-header-panel id="phpMainApp" main mode="waterfall" on-content-scroll="handleContentScroll">
+                <iron-pages selected="{{selectedview}}">
+                    <div id="divMainDashboardView">
+                        <main-dashboard id="mainDashboard" language="{{settings.language}}" on-menu-clicked="handleMainDashboardMenuClick"></main-dashboard>
+                    </div>
+                    <div id="divPaperCardsView">
+                        <paper-toolbar>
+                            <paper-icon-button class="middle" icon="menu" paper-drawer-toggle></paper-icon-button>
+                            <div class="middle title">{{selectedreportcategory}}</div>
+                        </paper-toolbar>
+                        <div class$="{{divslayout}}">
+                            <paper-card class="job" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.dailyjobsperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorlightred" icon="icons:add-circle" targetreportoperation="GetDailyPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.dailyjobsperformance}}" on-click="handleReportCardClick"></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.dailyjobsperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="employee" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobcreatorsperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorforestgreen" icon="icons:add-circle" targetreportoperation="GetOfficeUsersPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobcreatorsperformance}}" on-click="handleReportCardClick"></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobcreatorsperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="employee" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobcreatorsdetailedperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorforestgreen" icon="icons:add-circle" targetreportoperation="GetOfficeUsersPerformanceDetailedReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobcreatorsdetailedperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobcreatorsdetailedperformancedescription}}</div>
+                            </paper-card>
+                        </div>
+                        <div class$="{{divslayout}}">
+                            <paper-card class="jobcategory" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.dailyjobcategoriesperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcoral" icon="icons:add-circle" icon="icons:add-circle" targetreportoperation="GetDailyJobCategoryPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.dailyjobcategoriesperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.dailyjobcategoriesperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="jobcategory" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobcategoriesperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcoral" icon="icons:add-circle" targetreportoperation="GetJobCategoryPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobcategoriesperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobcategoriesperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="jobcategory" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobcategorystatusperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcoral" icon="icons:add-circle" targetreportoperation="GetJobCategoryStatusPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobcategorystatusperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobcategorystatusperformancedescription}}</div>
+                            </paper-card>
+                        </div>
+                        <div class$="{{divslayout}}">
+                            <paper-card class="jobtype" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.dailyjobtypesperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcornflowerblue" icon="icons:add-circle" targetreportoperation="GetDailyJobTypePerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.dailyjobtypesperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.dailyjobtypesperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="jobtype" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobtypesperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcornflowerblue" icon="icons:add-circle" targetreportoperation="GetJobTypePerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobtypesperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobtypesperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="jobtype" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobtypestatusperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcornflowerblue" icon="icons:add-circle" targetreportoperation="GetJobTypeStatusPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobtypestatusperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobtypestatusperformancedescription}}</div>
+                            </paper-card>
+                        </div>
+                        <div class$="{{divslayout}}">
+                            <paper-card class="jobstatus" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobstatusperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorhotpink" icon="icons:add-circle" targetreportoperation="GetStatusPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobstatusperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobstatusperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="area" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.areaperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colordarkblue" icon="icons:add-circle" targetreportoperation="GetAreaPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.areaperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.areaperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="area" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.areastatusperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colordarkblue" icon="icons:add-circle" targetreportoperation="GetAreaByStatusPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.areastatusperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.areastatusperformancedescription}}</div>
+                            </paper-card>
+                        </div>
+                        <div class$="{{divslayout}}">
+                            <paper-card class="jobcategory" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobcategoryprocessaverageperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcoral" icon="icons:add-circle" targetreportoperation="GetJobCategoryAvgPerformanceReportSummary" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobcategoryprocessaverageperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobcategoryprocessaverageperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="jobtype" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobtypeprocessaverageperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcornflowerblue" icon="icons:add-circle" targetreportoperation="GetJobTypeAvgPerformanceReportSummary" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobtypeprocessaverageperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobtypeprocessaverageperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="jobtype" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.jobtypedetailedprocessaverageperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorcornflowerblue" icon="icons:add-circle" targetreportoperation="GetReportDetailsJobHistoryReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.jobtypedetailedprocessaverageperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.jobtypedetailedprocessaverageperformancedescription}}</div>
+                            </paper-card>
+                        </div>
+                        <div class$="{{divslayout}}">
+                            <paper-card class="fieldresearcher" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.fieldresearchersperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorsienna" icon="icons:add-circle" icon="icons:add-circle" targetreportoperation="GetFieldResearcherPerformanceReport" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.fieldresearchersperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.fieldresearchersperformancedescription}}</div>
+                            </paper-card>
+                            <paper-card class="employee" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{resources.employeesperformance}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite colorforestgreen" icon="icons:add-circle" targetreportoperation="GetOfficeUsersPerformanceDetailed" reporttitle="{{resources.performancereports}}" reportsubtitle="{{resources.employeesperformance}}" on-click="handleReportCardClick" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{resources.employeesperformancedescription}}</div>
+                            </paper-card>
+                        </div>
+                        <template is="dom-repeat" items="{{userfavorites}}">
+                            <paper-card class="userfavorite" elevation="1">
+                                <paper-toolbar class="cardtoolbar">
+                                    <div class="flex">{{item.favoritename}}</div>
+                                    <paper-fab class="margintopfab bgcolorwhite sidemarginby2 colorred" icon="icons:add-circle" favoritename="{{item.favoritename}}" on-click="handleFavoriteCardClick" ></paper-fab>
+                                    <paper-fab class="margintopfab bgcolorwhite sidemarginby2 colorred" icon="icons:delete" favoritename="{{item.favoritename}}" on-click="handleDeleteFavorite" ></paper-fab>
+                                </paper-toolbar>
+                                <div class="card-content">{{item.favoritedescription}}</div>
+                            </paper-card>
+                        </template>
+                    </div>
+                    <div id="divReportFilterView">
+                        <report-filter id="reportFilter" language="{{settings.language}}" initiallastdayscount="{{settings.initiallastdayscount}}" reporttitle="{{currentreport.title}}" on-generate-clicked="handleReportFilterGenerateButton" on-back-clicked="handleReportFilterBackButton"></report-filter>
+                    </div>
+                    <div id="divDashboardReportView">
+                        <dashboard-report id="dashboardReport" language="{{settings.language}}" dateformat="{{settings.dateformat}}" on-back-clicked="handleDashboardReportBackButton"></dashboard-report>
+                    </div>
+                    <div id="divUserSettingsView">
+                        <user-settings language="{{settings.language}}" on-usersettings-changed="handleUserSettingsChanged" on-close-clicked="handleUserSettingsCloseButton"></user-settings>
+                    </div>
+                </iron-pages>
+            </paper-header-panel>
+        </paper-drawer-panel>
+
+    </template>
+
+    <script>
+
+        Polymer({
+
+            is: 'main-app',
+
+            properties: {
+                user: {
+                    type: String
+                },
+                islargescreen: {
+                    type: Boolean,
+                    observer: "_screenSizeChanged"
+                },
+                maindashboardview: {
+                    type: Number,
+                    value: 0,
+                    readOnly: true
+                },
+                reportscardview: {
+                    type: Number,
+                    value: 1,
+                    readOnly: true
+                },
+                reportfilterview: {
+                    type: Number,
+                    value: 2,
+                    readOnly: true
+                },
+                dashboardreportview: {
+                    type: Number,
+                    value: 3,
+                    readOnly: true
+                },
+                settingsview: {
+                    type: Number,
+                    value: 4,
+                    readOnly: true
+                },
+                lastnavigatedview: {
+                    type: Number,
+                    value: 0
+                },
+                settings: {
+                    type: Object,
+                    value: {
+                        language: "en",
+                        defaultreporttype: "bar",
+                        initiallastdayscount: 7,
+                        dateformat: "YYYY/MM/DD"
+                    },
+                    observer: "_settingsChanged"
+                },
+                userfavorites: {
+                    type: Array
+                },
+                rawuserfavorites: {
+                    type: String,
+                    observer: "_rawUserFavoritesChanged"
+                }
+            },
+
+            attached: function () {
+
+                this.async(function () {
+
+                    this.initializeUI();
+                    this.goToMainDashboardView();
+                });
+            },
+
+            initializeUI: function () {
+
+                this.$.pdpMainApp.responsiveWidth = "770px";
+
+                /* Hack: map legend shows over drawer */
+                $("#drawer").css("z-index", 10000000);
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+            },
+
+            _settingsChanged: function () {
+
+                if (this.settings) {
+
+                    this.language = this.settings.language;
+
+                    if (this.settings.language == "ar") {
+
+                        this.style.setProperty("direction", "rtl");
+                        this.$.pdpMainApp.rightDrawer = true;
+
+                        this.menuiconpadding = "paddingrightby40";
+                    }
+                    else {
+
+                        this.style.setProperty("direction", "ltr");
+                        this.$.pdpMainApp.rightDrawer = false;
+
+                        this.menuiconpadding = "paddingleftby40";
+                    }
+                }
+                else {
+
+                    this.settings = {
+                        language: "en",
+                        defaultreporttype: "bar",
+                        initiallastdayscount: 7,
+                        dateformat: "YYYY/MM/DD"
+                    };
+                }
+            },
+
+            _screenSizeChanged: function () {
+
+                if (this.islargescreen) {
+
+                    this.divslayout = "horizontal justified layout";
+                }
+                else {
+
+                    this.divslayout = "vertical justified layout";
+                }
+
+                setTimeout(function () { $(window).resize() }, 1000);
+            },
+
+            _rawUserFavoritesChanged: function () {
+
+                if (this.rawuserfavorites) {
+
+                    var UserFavoritesArray = JSON.parse(this.rawuserfavorites);
+                    this.userfavorites = UserFavoritesArray;
+                }
+            },
+
+            goToMainDashboardView: function () {
+
+                this.$.reportFilter.hideTopbarButtons();
+
+                this.selectedview = this.maindashboardview;
+                this.lastnavigatedview = this.maindashboardview;
+            },
+
+            goToFilterView: function () {
+
+                this.$.reportFilter.animateTopbarButtons();
+
+                this.selectedview = this.reportfilterview;
+                this.lastnavigatedview = this.reportfilterview;
+            },
+
+            goToDashboardReportView: function () {
+
+                this.$.reportFilter.hideTopbarButtons();
+
+                this.selectedview = this.dashboardreportview;
+                this.lastnavigatedview = this.dashboardreportview;
+            },
+
+            goToReportReportsCardView: function () {
+
+                this.$.reportFilter.hideTopbarButtons();
+
+                this.selectedview = this.reportscardview;
+                this.lastnavigatedview = this.reportscardview;
+            },
+
+            goToSettingsView: function () {
+
+                this.selectedview = this.settingsview;
+
+                this.$.reportFilter.hideTopbarButtons();
+            },
+
+            handleEmptyUserLocalStorage: function () {
+
+                window.location = "index.html";
+            },
+
+            handleUserLocalStorageLoad: function () {
+
+                if (this.user == null || (this.user && this.user.authenticated == false)) {
+
+                    window.location = "index.html";
+                }
+                else {
+
+                }
+            },
+
+            handleUserProfileLocalStorageLoad: function () {
+
+                if (this.user && this.user.authenticated) {
+
+                }
+                else {
+
+                    window.location = "index.html";
+                }
+            },
+
+            handleMenuItemClick: function (aEvent) {
+
+                this.$.pdpMainApp.closeDrawer();
+                this.$.phpMainApp.scroller.scrollTop = 0;
+
+                var MenuItemID = parseInt(aEvent.currentTarget.id)
+
+                if (MenuItemID == 0) {
+
+                    this.goToMainDashboardView();
+                }
+
+                else if (MenuItemID >= 1 && MenuItemID <= 9) {
+
+                    this.goToReportReportsCardView();
+
+                    var Cards = this.$.divPaperCardsView.querySelectorAll("paper-card");
+
+                    if (MenuItemID == 1) {
+
+                        for (var i = 0; i < Cards.length; i++) {
+
+                            Cards[i].hidden = false;
+                        }
+                    }
+                    else {
+
+                        if (MenuItemID == 9) {
+
+                            this.$.ilUserFavoritesMainApp.reload();
+                        }
+
+                        for (var i = 0; i < Cards.length; i++) {
+
+                            var Classes = Cards[i].className.split(" ");
+
+                            if (Classes.indexOf(aEvent.currentTarget.attributes.filterclass.value) >= 0) {
+                                Cards[i].hidden = false;
+                            }
+                            else {
+                                Cards[i].hidden = true;
+                            }
+
+
+                        }
+                    }
+
+                    this.selectedreportcategory = aEvent.currentTarget.innerText;
+                }
+
+                else if (MenuItemID == 10) {
+
+                    this.goToSettingsView();
+                }
+
+                setTimeout(function () { $(window).resize() }, 700);
+            },
+
+            handleReportCardClick: function (aEvent) {
+
+                this.$.phpMainApp.scroller.scrollTop = 0;
+
+                this.currentreport = {
+
+                    user: this.user,
+                    targetreportoperation: aEvent.currentTarget.attributes["targetreportoperation"].value,
+                    reporttitle: aEvent.currentTarget.reporttitle,
+                    reportsubtitle: aEvent.currentTarget.reportsubtitle,
+                    charttype: this.settings.defaultreporttype,
+                    filtercriteria: null,
+                    data: null
+                };
+
+                this.$.reportFilter.reporttitle = this.currentreport.reportsubtitle;
+                this.goToFilterView();
+            },
+
+            handleFavoriteCardClick: function (aEvent) {
+
+                var FavoriteName = aEvent.currentTarget.favoritename;
+
+                for (var i = 0; i < this.userfavorites.length; i++) {
+
+                    if (this.userfavorites[i].favoritename == FavoriteName) {
+
+
+                        this.currentreport = this.userfavorites[i];
+                        this.currentreport.isfavorite = true;
+
+                        this.$.reportDataGeneratorMainApp.getReportData(this.userfavorites[i], this.resources);
+                        break;
+                    }
+                }
+            },
+
+            handleDeleteFavorite: function (aEvent) {
+
+                var FavoriteName = aEvent.currentTarget.favoritename;
+
+                for (var i = 0; i < this.userfavorites.length; i++) {
+
+                    if (this.userfavorites[i].favoritename == FavoriteName) {
+
+                        this.userfavorites.splice(i, 1);
+                        this.rawuserfavorites = JSON.stringify(this.userfavorites);
+
+                        this.$.dashboardReport.rawuserfavorites = this.rawuserfavorites;
+
+                        break;
+                    }
+                }
+            },
+
+            handleReportFilterGenerateButton: function (aEvent) {
+
+                this.$.reportDataGeneratorMainApp.cancelReports();
+
+                this.$.reportFilter.showGeneratingSpinner();
+                this.$.reportFilter.disableGenerateButton();
+
+                this.currentreport.filtercriteria = aEvent.detail;
+                this.currentreport.charttype = this.settings.defaultreporttype;
+                this.$.reportDataGeneratorMainApp.getReportData(this.currentreport, this.resources);
+            },
+
+            handleReportDataGeneratorSuccess: function (aEvent) {
+
+                this.$.reportFilter.hideLoadingSpinner();
+                this.$.reportFilter.enableGenerateButton();
+
+                if (aEvent.detail.DataSource.length > 0) {
+
+                    this.goToDashboardReportView();
+
+                    this.currentreport.reporttypeid = "0";
+                    this.currentreport.data = aEvent.detail;
+
+                    this.$.dashboardReport.bindReport(this.currentreport);
+                }
+            },
+
+            handleReportFilterBackButton: function (aEvent) {
+
+                this.goToReportReportsCardView();
+            },
+
+            handleDashboardReportBackButton: function (aEvent) {
+
+                if (this.currentreport.isfavorite) {
+
+                    this.$.ilUserFavoritesMainApp.reload();
+                    this.goToReportReportsCardView();
+                }
+                else
+                    this.goToFilterView();
+
+                this.currentreport.charttype = this.settings.defaultreporttype;
+            },
+
+            handleUserStatusChanged: function (aEvent) {
+
+                this.userstatus = aEvent.detail.status;
+
+                if (aEvent.detail.statusid == 1) {
+
+                    this.toggleClass("colorred", false, this.$.pibUserStatus);
+                    this.toggleClass("colorlightgreen", true, this.$.pibUserStatus);
+                }
+                else {
+
+                    this.toggleClass("colorlightgreen", false, this.$.pibUserStatus);
+                    this.toggleClass("colorred", true, this.$.pibUserStatus);
+                }
+            },
+
+            handleUserSettingsChanged: function (aEvent) {
+
+                this.settings = {
+
+                    language: aEvent.detail.language,
+                    defaultreporttype: aEvent.detail.defaultreporttype,
+                    initiallastdayscount: aEvent.detail.initiallastdayscount,
+                    dateformat: "YYYY/MM/DD"
+                };
+
+                this.selectedview = this.lastnavigatedview;
+            },
+
+            handleUserSettingsCloseButton: function (aEvent) {
+
+                this.selectedview = this.lastnavigatedview;
+            },
+
+            handleMenuItemLogoutClick: function (aEvent) {
+
+                this.logOut();
+            },
+
+            handleDismissToast: function () {
+
+                this.$.ptReportMainApp.hide();
+            },
+
+            handleAppSignals: function (aSignal) {
+
+                if (aSignal.detail == "abort")
+                    return;
+
+                this.$.ptReportMainApp.style.setProperty("font-weight", "normal");
+                this.$.ptReportMainApp.style.setProperty("color", "White");
+
+                if (aSignal.type == "iron-signal-nodatafound" || aSignal.type == "iron-signal-nodatafoundonmap" || aSignal.type == "iron-signal-invaliddates" || aSignal.type == "iron-signal-reportnotimplemented") {
+
+                    if (this.selectedview == this.maindashboardview)
+                        return;
+
+                    this.$.ptReportMainApp.style.setProperty("background-color", "#FF9A31");
+                }
+
+                else if (aSignal.type == "iron-signal-soaprequestfail" || aSignal.type == "iron-signal-operationunsuccessful") {
+
+                    this.$.ptReportMainApp.style.setProperty("background-color", "Red");
+                }
+
+                else if (aSignal.type == "iron-signal-information") {
+
+                    this.$.ptReportMainApp.style.setProperty("background-color", "orange");
+                }
+
+                this.$.ptReportMainApp.text = aSignal.detail;
+                this.$.ptReportMainApp.show();
+
+                this.$.reportFilter.hideLoadingSpinner();
+                this.$.reportFilter.enableGenerateButton();
+            },
+
+            handleMainDashboardMenuClick: function () {
+
+                this.$.pdpMainApp.openDrawer();
+            },
+
+            handleRefreshMainDashboard: function () {
+
+                this.$.mainDashboard.refreshDashboard();
+            },
+
+            handleContentScroll: function (aEvent) {
+
+                var scroller = aEvent.detail.target;
+
+                if (scroller.scrollTop > 55)
+                    this.$.mainDashboard.showRefreshFabButton(true);
+                else
+                    this.$.mainDashboard.showRefreshFabButton(false);
+            },
+
+            logOut: function () {
+
+                this.user = {
+
+                    id: null,
+                    username: null,
+                    name: null,
+                    isactive: false,
+                    isldap: false,
+                    authenticated: false
+                }
+                window.location = "index.html";
+            }
+
+        });
+
+    </script>
+
+</dom-module>

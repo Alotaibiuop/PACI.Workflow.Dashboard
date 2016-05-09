@@ -1,0 +1,850 @@
+﻿<dom-module id="esri-map">
+
+    <template>
+
+        <style include="shared-styles">
+
+        </style>
+
+        <style>
+            paper-dialog.frlastseen {
+                position: absolute;
+                bottom: 340px;
+                left: 50px;
+                overflow: auto;
+                border-radius: 10px;
+            }
+        </style>
+
+        <localization-resources language="{{language}}"
+                                on-load="initializeResources">
+        </localization-resources>
+
+        <paper-dialog id="pdFieldResearchersLegend" class="frlastseen bgcolorlightgray">
+            <div class="vertical layout">
+                <div class="fontsize16 bold">{{resources.lastseen}}</div>
+                <div class="horizontal layout"><img src="../../images/Car.png" style="width: 28px; height: 28px; margin: 5px;" /><div style="color: gray; margin-top: 10px;">{{resources.active}}</div></div>
+                <div class="horizontal layout"><img src="../../images/Parking.png" style="width: 28px; height: 28px; margin: 5px;" /><div style="color: gray; margin-top: 10px;">{{resources.parking}}</div></div>
+                <div class="horizontal layout"><img src="../../images/Waiting.png" style="width: 28px; height: 28px; margin: 5px;" /><div style="color: gray; margin-top: 10px;">{{resources.waiting}}</div></div>
+                <div class="horizontal layout"><img src="../../images/Idle.png" style="width: 28px; height: 28px; margin: 5px;" /><div style="color: gray; margin-top: 10px;">{{resources.inactive}}</div></div>
+            </div>
+        </paper-dialog>
+
+        <paper-material id="pmMapContainer" elevation="3">
+
+            <div id="{{mapid}}" style="height: 400px;" class="resizable">
+
+                <div id="{{swipeid}}"></div>
+
+                <div id="divLegendContainer">
+                    <div id="{{legendid}}"></div>
+                </div>
+
+            </div>
+
+            <paper-fab id="{{pftogglefieldresearchers}}" class="bgcolorgreen colorwhite" style="position: absolute; bottom: 235px; left: 15px" icon="notification:drive-eta" on-tap="handleToggleLayerOnMap" mini hidden></paper-fab>
+            <paper-fab id="{{pftoggleblendrenderer}}" class="bgcolororange colorwhite" style="position: absolute; bottom: 190px; left: 15px" icon="image:hdr-strong" on-tap="handleToggleLayerOnMap" mini hidden></paper-fab>
+            <paper-fab id="{{pftoggleclassbreakrenderer}}" class="bgcolorlightblue colorwhite" style="position: absolute; bottom: 145px; left: 15px" icon="image:blur-on" on-tap="handleToggleLayerOnMap" mini hidden></paper-fab>
+            <paper-fab class="bgcolorlightgreen colorwhite" style="position: absolute; bottom: 100px; left: 15px" icon="social:public" on-tap="handleFullExtentClick" mini></paper-fab>
+            <paper-fab class="bgcolorlightred colorwhite" style="position: absolute; bottom: 55px; left: 15px" icon="icons:add-circle" on-tap="handleZoomInClick" mini></paper-fab>
+            <paper-fab class="bgcolorlightred colorwhite" style="position: absolute; bottom: 10px; left: 15px" icon="icons:remove-circle" on-tap="handleZoomOutClick" mini></paper-fab>
+
+        </paper-material>
+
+    </template>
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "esri-map",
+
+            properties: {
+                language: {
+                    type: String
+                },
+                mapid: {
+                    type: String,
+                    value: function () { return { value: "" }; }
+                },
+                homeextent: {
+                    type: Object,
+                    value: {
+                        xmax: 5359965.709711191,
+                        xmin: 5281235.570577568,
+                        ymax: 3439382.6416768474,
+                        ymin: 3381290.5001801928
+                    }
+                },
+                height: {
+                    type: Number,
+                    value: function () { return { value: 300 }; }
+                },
+                configuration: {
+                    type: Object,
+                    value: function () { return { mapurl: "", satellitemapurl: "" }; }
+                },
+                zoomlevel: {
+                    type: Number,
+                    value: function () { return { value: 10 }; }
+                }
+            },
+
+            attached: function () {
+
+                var Context = this;
+
+                this.async(function () {
+
+                    this.swipeid = "divSwipe" + this.mapid;
+                    this.legendid = "divLegend" + this.mapid;
+                    this.pftoggleblendrenderer = "pftoggleblendrenderer" + this.mapid;
+                    this.pftoggleclassbreakrenderer = "pftoggleclassbreakrenderer" + this.mapid;
+                    this.pftogglefieldresearchers = "pftogglefieldresearchers" + this.mapid;
+
+                    setTimeout(function () { Context.loadMap(); }, 200);
+                });
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+            },
+
+            loadMap: function () {
+
+                var Context = this;
+
+                require(["esri/map", "esri/layers/ArcGISTiledMapServiceLayer", "dojo/domReady!"], function (Map, ArcGISTiledMapServiceLayer) {
+
+                    Context.loadProxy();
+
+                    var divMap = Context.$.pmMapContainer.queryEffectiveChildren("#" + Context.mapid);
+
+                    Context.esriMap = new Map(divMap, { logo: false, slider: false, fitExtent: true, logo: false, minScale: 1155581.108577 });
+                    Context.esriMap.on("load", function () { Context.handleMapLoad(); });
+                    Context.esriMap.on("layer-add-result", function (aResult) { Context.handleLayerAddResult(aResult) });
+
+                    var BaseLayer = new ArcGISTiledMapServiceLayer(Context.configuration.mapurl);
+                    BaseLayer.id = "BaseMap";
+
+                    var SatelliteLayer = new ArcGISTiledMapServiceLayer(Context.configuration.satellitemapurl);
+                    SatelliteLayer.id = "SatelliteMap";
+
+                    Context.esriMap.addLayers([BaseLayer, SatelliteLayer]);
+                });
+            },
+
+            loadProxy: function () {
+
+                if (Configuration.UseProxy == true) {
+
+                    esriConfig.defaults.io.proxyUrl = Configuration.ProxyURL;
+                    esriConfig.defaults.io.alwaysUseProxy = true;
+                }
+            },
+
+            reorderLayers: function () {
+
+                if (this.esriMap) {
+
+                    var FieldResearchersGraphicsLayer = this.esriMap.getLayer("FieldResearchers");
+
+                    if (FieldResearchersGraphicsLayer != null) {
+
+                        this.esriMap.reorderLayer(FieldResearchersGraphicsLayer, 100)
+                    }
+                }
+            },
+
+            clearLegend: function () {
+
+                if (this.LegendWidget) {
+
+                    this.LegendWidget.refresh([]);
+                }
+            },
+
+            toggleSwipeLayer: function () {
+
+                var Context = this;
+
+                if (ESRIExtraModules.Loaded) {
+
+                    var Layer = Context.esriMap.getLayer("SatelliteMap");
+
+                    var SwipeWidget = new ESRIExtraModules.LayerSwipe({ type: "vertical", map: Context.esriMap, layers: [Layer], left: 0 }, Context.swipeid);
+                    SwipeWidget.on("load", function () {
+
+                        $(".LayerSwipe .vertical").css("border", "none");
+                        $(".LayerSwipe .vertical .handle").css("border", "none");
+                        $(".LayerSwipe .vertical .handle").css("background-image", "none");
+                        $(".LayerSwipe .vertical .handle").css("background-color", "#3F51B5");
+                        $(".LayerSwipe .vertical .handle").css("border-radius", "50%");
+                        $(".LayerSwipe .vertical .handle").css("width", "32px");
+                        $(".LayerSwipe .vertical .handle").css("margin", "-100px 0 0 -16px");
+
+                        $(".LayerSwipe .vertical .handle").hide();
+
+                    });
+
+                    SwipeWidget.startup();
+                }
+                else {
+
+                    setTimeout(function () { Context.toggleSwipeLayer(); }, 1000);
+                }
+            },
+
+            zoomToLocations: function (aLocations) {
+
+                var Context = this;
+                var Factor = 100;
+
+                require(["esri/geometry/Extent", "esri/geometry/Point", "esri/geometry/Multipoint", "esri/geometry/webMercatorUtils"], function (Extent, Point, Multipoint, WebMercatorUtils) {
+
+                    if (aLocations && aLocations.length > 0) {
+
+                        var MultiLocations = new Multipoint(Context.spatialReference);
+
+                        for (var i = 0; i < aLocations.length; i++) {
+
+                            MultiLocations.addPoint(new Point(aLocations[i].x, aLocations[i].y));
+                        }
+
+                        Context.esriMap.setExtent(MultiLocations.getExtent().expand(2.5));
+                    }
+
+                });
+            },
+
+            selectLocations: function (aLocations) {
+
+                var Context = this;
+
+                require(["esri/geometry/Point", "esri/graphic", "esri/geometry/webMercatorUtils"], function (Point, Graphic, WebMercatorUtils) {
+
+                    var Symbol = aLocations.length > 1 ? Context.getSymbol("SmallMapMarker") : Context.getSymbol("MapMarker");
+
+                    var SelectResultGraphicLayer = Context.esriMap.getLayer("SelectResultLayer");
+
+                    if (SelectResultGraphicLayer != null) {
+
+                        SelectResultGraphicLayer.clear();
+                    }
+                    else {
+
+                        SelectResultGraphicLayer = new esri.layers.GraphicsLayer();
+                        SelectResultGraphicLayer.id = "SelectResultLayer";
+                        Context.esriMap.addLayer(SelectResultGraphicLayer);
+
+                        Context.esriMap.reorderLayer(SelectResultGraphicLayer, 1);
+                    }
+
+                    for (var i = 0; i < aLocations.length; i++) {
+
+                        var GeographicPoint = WebMercatorUtils.webMercatorToGeographic(new Point(aLocations[i].x, aLocations[i].y));
+
+                        var SelectedLocationPoint = new Point([GeographicPoint.x, GeographicPoint.y]);
+                        var SelectedLocationGraphic = new Graphic(SelectedLocationPoint, Symbol);
+                        SelectResultGraphicLayer.add(SelectedLocationGraphic);
+                    }
+                });
+            },
+
+            blendLocations: function (aLocations, aMaxValue, aMinValue) {
+
+                this.showRendererControls();
+                this.clearBlendedRenderer();
+                this.clearSelections();
+
+                this.CurrentLocations = aLocations;
+                this.CurrentMaxValue = aMaxValue;
+                this.CurrentMinValue = aMinValue;
+
+                var Context = this;
+
+                require(["esri/geometry/Extent", "esri/geometry/Point", "esri/graphic", "esri/geometry/webMercatorUtils", "esri/symbols/SimpleFillSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleMarkerSymbol", "esri/Color", "dojo/domReady!"], function (Extent, Point, Graphic, WebMercatorUtils, SimpleFillSymbol, SimpleLineSymbol, SimpleMarkerSymbol, Color) {
+
+                    var Features = [];
+
+                    var BlendRendererOptions = {
+                        symbol: new SimpleMarkerSymbol().setOutline(new SimpleLineSymbol().setWidth(1).setColor(new Color([250, 0, 0, 0.2]))),
+                        fields: [
+                          {
+                              field: "JobsCount",
+                              color: new Color("#FFB74D")
+                          }
+                        ],
+                        opacityStops: [{
+                            value: 1,
+                            opacity: 0.8
+                        }
+                        ],
+                        normalizationField: "JobsCount"
+                    };
+                    var BlendRenderer = new ESRIExtraModules.BlendRenderer(BlendRendererOptions);
+                    BlendRenderer.setVisualVariables([
+                        {
+                            type: "sizeInfo",
+                            field: "JobsCount",
+                            minSize: 10,
+                            maxSize: 55,
+                            minDataValue: parseInt(aMinValue),
+                            maxDataValue: parseInt(aMaxValue)
+                        }
+                    ]);
+
+                    var FeatureCollection = {
+                        "layerDefinition": null,
+                        "featureSet": {
+                            "features": [],
+                            "geometryType": "esriGeometryPoint"
+                        }
+                    };
+                    FeatureCollection.layerDefinition = {
+                        "geometryType": "esriGeometryPoint",
+                        "objectIdField": "ObjectID",
+                        "drawingInfo": {
+                            "renderer": null
+                        },
+                        "fields": [{
+                            "name": "ObjectID",
+                            "alias": "ObjectID",
+                            "type": "esriFieldTypeOID"
+                        }, {
+                            "name": "AreaNameArabic",
+                            "alias": "AreaNameArabic",
+                            "type": "esriFieldTypeString"
+                        }, {
+                            "name": "AreaNameEnglish",
+                            "alias": "AreaNameEnglish",
+                            "type": "esriFieldTypeString"
+                        }, {
+                            "name": "JobsCount",
+                            "alias": "JobsCount",
+                            "type": "esriFieldTypeInteger"
+                        }]
+                    };
+
+                    var InfoTemplate = new ESRIExtraModules.PopupTemplate({
+                        "fieldInfos": [{
+                            "fieldName": "JobsCount",
+                            "visible": true,
+                            "format": {
+                                "places": 0,
+                                "digitSeparator": true
+                            }
+                        }, {
+                            "fieldName": "AreaNameArabic",
+                            "visible": true,
+                            "format": {
+                                "places": 0,
+                                "digitSeparator": true
+                            }
+                        }]
+                    });
+                    InfoTemplate.setContent("<paper-item><iron-icon icon='maps:place' style='color: gray'></iron-icon><span style='padding-left: 10px'>${AreaNameArabic}</span></paper-item><paper-item><iron-icon icon='icons:work' style='color: gray'></iron-icon><span style='padding-left: 10px'> ${JobsCount}</span></paper-item>");
+                    Context.customizeInfoTemplate();
+
+                    var BlendedFeatureLayer = new ESRIExtraModules.FeatureLayer(FeatureCollection, { id: "AreasFeatureLayerBlended", opacity: 1, infoTemplate: InfoTemplate });
+                    BlendedFeatureLayer.setRenderer(BlendRenderer);
+                    Context.esriMap.addLayers([BlendedFeatureLayer]);
+
+                    for (var i = 0; i < aLocations.length; i++) {
+
+                        var OneLocation = new Object();
+
+                        OneLocation.longitude = aLocations[i].x;
+                        OneLocation.latitude = aLocations[i].y;
+                        OneLocation.AreaNameArabic = aLocations[i].AreaNameArabic;
+                        OneLocation.AreaNameEnglish = aLocations[i].AreaNameEnglish;
+                        OneLocation.JobsCount = aLocations[i].JobsCount;
+
+                        var GraphicAttributes = {};
+                        GraphicAttributes["AreaNameArabic"] = OneLocation.AreaNameArabic;
+                        GraphicAttributes["AreaNameEnglish"] = OneLocation.AreaNameEnglish;
+                        GraphicAttributes["JobsCount"] = OneLocation.JobsCount;
+
+                        var GeographicPoint = WebMercatorUtils.webMercatorToGeographic(new esri.geometry.Point(aLocations[i].x, aLocations[i].y));
+
+                        var OneGraphic = new Graphic(new Point(GeographicPoint.x, GeographicPoint.y));
+                        OneGraphic.setAttributes(GraphicAttributes);
+
+                        Features.push(OneGraphic);
+                    }
+
+                    BlendedFeatureLayer.applyEdits(Features, null, null);
+
+                    BlendedFeatureLayer.setVisibility(false);
+
+                    Context.reorderLayers();
+                });
+            },
+
+            classBreakLocations: function (aLocations, aMaxValue, aMinValue) {
+
+                this.showRendererControls();
+                this.clearClassBreakRenderer();
+                this.clearLegend();
+                this.clearSelections();
+
+                this.CurrentLocations = aLocations;
+                this.CurrentMaxValue = aMaxValue;
+                this.CurrentMinValue = aMinValue;
+
+                var Context = this;
+
+                require(["esri/symbols/SimpleFillSymbol", "esri/renderers/ClassBreaksRenderer", "esri/tasks/query", "esri/tasks/QueryTask", "esri/graphic", "esri/Color"], function (SimpleFillSymbol, ClassBreaksRenderer, Query, QueryTask, Graphic, Color) {
+
+                    var Features = [];
+                    var NumberOfClasses = 5;
+                    var Interval = (aMaxValue - aMinValue) / NumberOfClasses;
+
+                    var Renderer = new ClassBreaksRenderer(SimpleFillSymbol().setOutline(null).setColor(new Color([192, 192, 192, 0.7])), "JobsCount");
+
+                    Renderer.addBreak(Math.round(parseInt(aMinValue)), Math.round(parseInt(aMinValue) + parseInt(Interval)), new SimpleFillSymbol().setOutline(null).setColor(new Color([255, 255, 0, 0.5])));
+                    Renderer.addBreak(Math.round(parseInt(aMinValue) + parseInt(Interval)), Math.round(parseInt(aMinValue) + parseInt((Interval * 2))), new SimpleFillSymbol().setOutline(null).setColor(new Color([0, 255, 0, 0.8])));
+                    Renderer.addBreak(Math.round(parseInt(aMinValue) + parseInt(Interval * 2)), Math.round(parseInt(aMinValue) + parseInt(Interval * 3)), new SimpleFillSymbol().setOutline(null).setColor(new Color([255, 153, 51, 0.8])));
+                    Renderer.addBreak(Math.round(parseInt(aMinValue) + parseInt(Interval * 3)), Math.round(parseInt(aMinValue) + parseInt(Interval * 4)), new SimpleFillSymbol().setOutline(null).setColor(new Color([255, 80, 51, 0.8])));
+                    Renderer.addBreak(Math.round(parseInt(aMinValue) + parseInt(Interval * 4)), Math.round(parseInt(aMinValue) + parseInt(Interval * 5)), new SimpleFillSymbol().setOutline(null).setColor(new Color([255, 51, 51, 0.8])));
+
+                    var FeatureCollection = {
+                        "layerDefinition": null,
+                        "featureSet": {
+                            "features": [],
+                            "geometryType": "esriGeometryPolygon"
+                        }
+                    };
+                    FeatureCollection.layerDefinition = {
+                        "geometryType": "esriGeometryPolygon",
+                        "objectIdField": "ObjectID",
+                        "drawingInfo": {
+                            "renderer": null
+                        },
+                        "fields": [{
+                            "name": "ObjectID",
+                            "alias": "ObjectID",
+                            "type": "esriFieldTypeOID"
+                        }, {
+                            "name": "ID",
+                            "alias": "ID",
+                            "type": "esriFieldTypeInteger"
+                        }, {
+                            "name": "AreaNameArabic",
+                            "alias": "AreaNameArabic",
+                            "type": "esriFieldTypeString"
+                        }, {
+                            "name": "AreaNameEnglish",
+                            "alias": "AreaNameEnglish",
+                            "type": "esriFieldTypeString"
+                        }, {
+                            "name": "JobsCount",
+                            "alias": Context.resources.clntotaljobs,
+                            "type": "esriFieldTypeInteger"
+                        }]
+                    };
+
+                    var InfoTemplate = new ESRIExtraModules.PopupTemplate({
+                        "fieldInfos": [{
+                            "fieldName": "JobsCount",
+                            "label": Context.resources.clntotaljobs,
+                            "visible": true,
+                            "format": {
+                                "places": 0,
+                                "digitSeparator": true
+                            }
+                        }, {
+                            "fieldName": "AreaNameArabic",
+                            "label": Context.resources.clntotaljobs,
+                            "visible": true,
+                            "format": {
+                                "places": 0,
+                                "digitSeparator": true
+                            }
+                        }]
+                    });
+
+                    InfoTemplate.setContent("<paper-item><iron-icon icon='maps:place' style='color: gray'></iron-icon><span style='padding-left: 10px'>${AreaNameArabic}</span></paper-item><paper-item><iron-icon icon='icons:work' style='color: gray'></iron-icon><span style='padding-left: 10px'> ${JobsCount}</span></paper-item>");
+                    Context.customizeInfoTemplate();
+
+                    var ThisFeatureLayer = new ESRIExtraModules.FeatureLayer(FeatureCollection, {
+                        id: "AreasFeatureLayerClassBreaked",
+                        infoTemplate: InfoTemplate
+                    });
+
+                    ThisFeatureLayer.setRenderer(Renderer);
+                    Context.esriMap.addLayers([ThisFeatureLayer]);
+
+                    var QueryTask = new QueryTask(Configuration.NBHFeatureLayer);
+                    var Query = new Query();
+                    Query.returnGeometry = true;
+                    Query.outFields = ["*"];
+                    Query.where = "1=1";
+
+                    if (Context.NBHResults) {
+
+                        UpdateFeatureLayer();
+                    }
+                    else {
+                        QueryTask.execute(Query, function (aResults) {
+
+                            Context.NBHResults = aResults;
+                            UpdateFeatureLayer();
+                        });
+                    }
+
+                    function UpdateFeatureLayer() {
+
+                        for (var i = 0; i < Context.NBHResults.features.length; i++) {
+
+                            var featureAttributes = Context.NBHResults.features[i].attributes;
+                            var geometry = Context.NBHResults.features[i].geometry;
+
+                            var attr = {};
+                            attr["ID"] = featureAttributes["nhood_no"];
+                            attr["AreaNameArabic"] = featureAttributes["neighborhoodarabic"];
+                            attr["AreaNameEnglish"] = featureAttributes["neighborhoodenglish"];
+                            attr["JobsCount"] = 0;
+
+                            for (var j = 0; j < aLocations.length ; j++) {
+
+                                if (aLocations[j].ID == featureAttributes["nhood_no"]) {
+
+                                    attr["JobsCount"] = aLocations[j].JobsCount;
+                                    attr["AreaNameArabic"] = aLocations[j].AreaNameArabic;
+                                    attr["AreaNameEnglish"] = aLocations[j].AreaNameEnglish;
+                                }
+                            }
+
+                            var graphic = new Graphic(geometry);
+                            graphic.setAttributes(attr);
+                            Features.push(graphic);
+                        }
+                        ThisFeatureLayer.applyEdits(Features, null, null);
+                    }
+
+                    Context.reorderLayers();
+                });
+            },
+
+            renderFieldResearchers: function (aFieldResearchersLastLocation) {
+
+                this.showFieldResearchersControls();
+
+                var Symbol = null;
+
+                var FieldResearchersGraphicsLayer = this.esriMap.getLayer("FieldResearchers");
+
+                if (FieldResearchersGraphicsLayer != null) {
+
+                    FieldResearchersGraphicsLayer.clear();
+                }
+                else {
+
+                    FieldResearchersGraphicsLayer = new esri.layers.GraphicsLayer();
+                    FieldResearchersGraphicsLayer.id = "FieldResearchers";
+                    this.esriMap.addLayer(FieldResearchersGraphicsLayer);
+                }
+
+                for (var i = 0; i < aFieldResearchersLastLocation.length; i++) {
+
+                    var duration = moment.duration(moment(aFieldResearchersLastLocation[i].LogTime).diff(moment()));
+                    var minutes = Math.abs(duration.asMinutes());
+
+                    if (minutes < 10)
+                        Symbol = this.getSymbol("ActiveFieldResearcherSymbol");
+
+                    else if (minutes > 10 && minutes < 60)
+                        Symbol = this.getSymbol("ParkedFieldResearcherSymbol");
+
+                    else if (minutes > 60 && minutes < 1440)
+                        Symbol = this.getSymbol("WaitingFieldResearcherSymbol");
+
+                    else if (minutes > 1440)
+                        Symbol = this.getSymbol("IdleFieldResearcherSymbol");
+
+                    var pntSearchResult = new esri.geometry.Point([parseFloat(aFieldResearchersLastLocation[i].Y), parseFloat(aFieldResearchersLastLocation[i].X)]);
+                    var gSearchResult = new esri.Graphic(pntSearchResult, Symbol);
+
+                    gSearchResult.setAttributes({ "X": aFieldResearchersLastLocation[i].Y, "Y": aFieldResearchersLastLocation[i].X, "Name": aFieldResearchersLastLocation[i].Name, "Username": aFieldResearchersLastLocation[i].Username, "LogTime": moment(aFieldResearchersLastLocation[i].LogTime).format('DD/MM/YYYY hh:mm:ss A'), "Notes": aFieldResearchersLastLocation[i].Notes });
+
+                    FieldResearchersGraphicsLayer.add(gSearchResult);
+                }
+
+                var InfoWindowTemplate = new esri.InfoTemplate();
+                InfoWindowTemplate.setTitle("<span></span>");
+                InfoWindowTemplate.setContent(
+                    "<div style='color: gray'>" +
+                    "<iron-icon icon='maps:person-pin' style='margin: 5px;'></iron-icon><b>${Username}</b>: ${Name}<br>" +
+                    "<iron-icon icon='icons:alarm' style='margin: 5px;'></iron-icon><b>${LogTime}</b><br>" +
+                    "<iron-icon icon='icons:done' style='margin: 5px;'></iron-icon><b>${Notes}</b></div>");
+
+                FieldResearchersGraphicsLayer.infoTemplate = InfoWindowTemplate;
+            },
+
+            resetCachedLocations: function () {
+
+                this.CurrentLocations = [];
+                this.CurrentMaxValue = 100;
+                this.CurrentMinValue = 0;
+            },
+
+            customizeInfoTemplate: function () {
+
+                $(".esriPopup .actionsPane .action").hide();
+                $(".esriPopup .actionsPane").hide();
+                $(".esriPopup .titleButton.maximize").hide();
+                $(".esriPopup .titlePane").css("background-color", "#3F51B5");
+                $(".esriPopup .contentPane").css("padding", "0px");
+            },
+
+            clearRenderers: function () {
+
+                this.clearBlendedRenderer();
+                this.clearClassBreakRenderer();
+            },
+
+            clearClassBreakRenderer: function () {
+
+                if (this.esriMap) {
+
+                    AreasFeatureLayer = this.esriMap.getLayer("AreasFeatureLayerClassBreaked");
+                    if (AreasFeatureLayer != null) {
+
+                        this.esriMap.infoWindow.hide();
+                        this.esriMap.removeLayer(AreasFeatureLayer);
+                    }
+                }
+            },
+
+            clearBlendedRenderer: function () {
+
+                if (this.esriMap) {
+
+                    var AreasFeatureLayer = this.esriMap.getLayer("AreasFeatureLayerBlended");
+                    if (AreasFeatureLayer != null) {
+
+                        this.esriMap.infoWindow.hide();
+                        this.esriMap.removeLayer(AreasFeatureLayer);
+                    }
+                }
+            },
+
+            clearFieldResearchers: function () {
+
+                if (this.esriMap) {
+
+                    var FieldResearchersGraphicsLayer = this.esriMap.getLayer("FieldResearchers");
+
+                    if (FieldResearchersGraphicsLayer != null) {
+
+                        FieldResearchersGraphicsLayer.clear();
+                    }
+                }
+            },
+
+            clearSelections: function () {
+
+                if (this.esriMap) {
+
+                    var SelectResultGraphicLayer = this.esriMap.getLayer("SelectResultLayer");
+
+                    if (SelectResultGraphicLayer != null) {
+
+                        SelectResultGraphicLayer.clear();
+                    }
+                }
+            },
+
+            getSymbol: function (aType) {
+
+                var Symbol;
+
+                require(["esri/symbols/SimpleMarkerSymbol", "esri/symbols/PictureMarkerSymbol", "esri/Color", "dojo/domReady!"], function (SimpleMarkerSymbol, PictureMarkerSymbol, Color) {
+
+                    var Path;
+
+                    if (aType == "MapMarker") {
+
+                        Symbol = new SimpleMarkerSymbol();
+                        Path = "M768 896q0 106 -75 181t-181 75t-181 -75t-75 -181t75 -181t181 -75t181 75t75 181zM1024 896q0 -109 -33 -179l-364 -774q-16 -33 -47.5 -52t-67.5 -19t-67.5 19t-46.5 52l-365 774q-33 70 -33 179q0 212 150 362t362 150t362 -150t150 -362z";
+                        Symbol.setPath(Path);
+                        Symbol.yoffset = 20;
+                        Symbol.setColor(new Color([250, 70, 70, 0.8]));
+                        Symbol.setSize(60);
+                        Symbol.setAngle(180);
+
+                    }
+
+                    else if (aType == "SmallMapMarker") {
+
+                        Symbol = new SimpleMarkerSymbol();
+                        Path = "M768 896q0 106 -75 181t-181 75t-181 -75t-75 -181t75 -181t181 -75t181 75t75 181zM1024 896q0 -109 -33 -179l-364 -774q-16 -33 -47.5 -52t-67.5 -19t-67.5 19t-46.5 52l-365 774q-33 70 -33 179q0 212 150 362t362 150t362 -150t150 -362z";
+                        Symbol.setPath(Path);
+                        Symbol.yoffset = 8;
+                        Symbol.setColor(new Color([255, 0, 0, 0.5]));
+                        Symbol.setSize(16);
+                        Symbol.setAngle(180);
+                    }
+
+                    else if (aType == "ActiveFieldResearcherSymbol") {
+
+                        Symbol = new PictureMarkerSymbol('images/car.png', 28, 28);
+                    }
+
+                    else if (aType == "ParkedFieldResearcherSymbol") {
+
+                        Symbol = new PictureMarkerSymbol('images/parking.png', 20, 20);
+                    }
+
+                    else if (aType == "WaitingFieldResearcherSymbol") {
+
+                        Symbol = new PictureMarkerSymbol('images/Waiting.png', 24, 24);
+                    }
+
+                    else if (aType == "IdleFieldResearcherSymbol") {
+
+                        Symbol = new PictureMarkerSymbol('images/Idle.png', 24, 24);
+                    }
+
+                });
+
+                return Symbol;
+            },
+
+            goHomeExtent: function () {
+
+                if (this.esriMap && this.esriMap.loaded) {
+
+                    var Context = this;
+
+                    require(["esri/geometry/Extent", "dojo/domReady!"], function (Extent) {
+
+                        var HomeExtent = new Extent({
+                            "xmin": Context.homeextent.xmin,
+                            "ymin": Context.homeextent.ymin,
+                            "xmax": Context.homeextent.xmax,
+                            "ymax": Context.homeextent.ymax,
+                            "spatialReference": Context.spatialReference
+                        });
+
+                        Context.esriMap.setExtent(HomeExtent, true);
+                    });
+                }
+            },
+
+            showRendererControls: function () {
+
+                this.$$("#" + this.pftoggleblendrenderer).hidden = false;
+                this.$$("#" + this.pftoggleclassbreakrenderer).hidden = false;
+            },
+
+            hideRendererControls: function () {
+
+                this.$$("#" + this.pftoggleblendrenderer).hidden = true;
+                this.$$("#" + this.pftoggleclassbreakrenderer).hidden = true;
+            },
+
+            showFieldResearchersControls: function () {
+
+                this.$$("#" + this.pftogglefieldresearchers).hidden = false;
+            },
+
+            hideFieldResearchersControls: function () {
+
+                this.$$("#" + this.pftogglefieldresearchers).hidden = true;
+            },
+
+            handleLayerAddResult: function (aResult) {
+
+                var Context = this;
+
+                if (aResult.error != null) {
+
+                    this.fire("iron-signal", { name: "soaprequestfail", data: this.resources.mapnotloaded });
+                }
+
+                if (aResult.layer.id == "AreasFeatureLayerClassBreaked") {
+
+                    if (!this.LegendWidget) {
+
+                        var LegendWidget = new ESRIExtraModules.Legend({ map: Context.esriMap, layerInfos: [{ layer: aResult.layer, title: this.resources.topareasperformance }] }, this.legendid);
+                        LegendWidget.startup();
+
+                        this.LegendWidget = LegendWidget;
+                    }
+                    else {
+
+                        this.LegendWidget.refresh([{ layer: aResult.layer, title: this.resources.topareasperformance }]);
+                    }
+                }
+            },
+
+            handleMapLoad: function () {
+
+                var Context = this;
+
+                setTimeout(function () { Context.toggleSwipeLayer(); }, 1000);
+                setTimeout(function () { Context.goHomeExtent(); }, 1000);
+
+                $(".esriControlsBR").hide();
+
+                this.fire(this.mapid + "-" + "load", null);
+            },
+
+            handleZoomInClick: function () {
+
+                this.esriMap.setLevel(this.esriMap.getLevel() + 1);
+            },
+
+            handleZoomOutClick: function () {
+
+                this.esriMap.setLevel(this.esriMap.getLevel() - 1);
+            },
+
+            handleFullExtentClick: function () {
+
+                this.goHomeExtent();
+            },
+
+            handleToggleLayerOnMap: function (aEvent) {
+
+                if (this.esriMap) {
+
+                    if (aEvent.currentTarget.id == this.pftoggleblendrenderer) {
+
+                        var Layer = this.esriMap.getLayer("AreasFeatureLayerBlended");
+
+                        if (Layer != null)
+                            Layer.setVisibility(!Layer.visible);
+                    }
+
+                    else if (aEvent.currentTarget.id == this.pftoggleclassbreakrenderer) {
+
+                        var Layer = this.esriMap.getLayer("AreasFeatureLayerClassBreaked");
+
+                        if (Layer != null)
+                            Layer.setVisibility(!Layer.visible);
+                    }
+
+                    else if (aEvent.currentTarget.id == this.pftogglefieldresearchers) {
+
+                        var Layer = this.esriMap.getLayer("FieldResearchers");
+
+                        if (Layer != null)
+                            Layer.setVisibility(!Layer.visible);
+
+                        if (Layer.visible) {
+
+                            this.$.pdFieldResearchersLegend.open();
+                        }
+                    }
+                }
+            }
+
+        });
+
+    </script>
+
+</dom-module>

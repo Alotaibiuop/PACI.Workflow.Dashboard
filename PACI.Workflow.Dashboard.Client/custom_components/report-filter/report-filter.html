@@ -1,0 +1,1103 @@
+﻿<dom-module id="report-filter">
+
+    <template>
+
+        <style include="shared-styles">
+        </style>
+
+        <style>
+            iron-selector > * {
+                padding: 10px;
+            }
+
+            .iron-selected {
+                color: #ffffff;
+                background-color: #F08080;
+            }
+        </style>
+
+        <localization-resources language="{{language}}"
+                                on-load="initializeResources">
+        </localization-resources>
+
+        <iron-a11y-keys id="iakReportFilter"
+                        keys="left right"
+                        on-keys-pressed="handleArrowsKey">
+        </iron-a11y-keys>
+
+        <iron-media-query query="(min-width: 770px)"
+                          query-matches="{{islargescreen}}">
+        </iron-media-query>
+
+        <paper-dialog id="pdDateFrom"
+                      class="paper-date-picker-dialog"
+                      modal
+                      on-iron-overlay-opened="handleIronOverlayOpened"
+                      entry-animation="fade-in-animation"
+                      exit-animation="fade-out-animation">
+            <paper-date-picker id="pdpFrom"
+                               date="{{datefrom}}">
+            </paper-date-picker>
+            <div class="buttons">
+                <paper-button dialog-confirm on-tap="setDateFrom">{{resources.ok}}</paper-button>
+                <paper-button dialog-dismiss>{{resources.cancel}}</paper-button>
+            </div>
+        </paper-dialog>
+
+        <paper-dialog id="pdDateTo"
+                      class="paper-date-picker-dialog"
+                      modal
+                      on-iron-overlay-opened="handleIronOverlayOpened"
+                      entry-animation="fade-in-animation"
+                      exit-animation="fade-out-animation">
+            <paper-date-picker id="pdpTo"
+                               date="{{dateto}}">
+            </paper-date-picker>
+            <div class="buttons">
+                <paper-button dialog-confirm on-tap="setDateTo">{{resources.ok}}</paper-button>
+                <paper-button dialog-dismiss>{{resources.cancel}}</paper-button>
+            </div>
+        </paper-dialog>
+
+        <paper-toolbar>
+            <paper-icon-button id="pibBackReportFilter" class="middle" icon="arrow-back" on-tap="handleToolbarBackClick"></paper-icon-button>
+            <div class="middle title flex">{{reporttitle}}</div>
+            <div class="title flex"></div>
+            <paper-spinner id="psLoading" class="sidemarginby15 margintopby145"></paper-spinner>
+            <paper-fab id="pfResetAllFilters" class="middle margintopfab sidemarginby2 bgcolorlightred" icon="icons:refresh" on-tap="handleResetFilter" mini></paper-fab>
+            <paper-fab id="pfGenerate" class="middle margintopfab sidemarginby2 bgcolorlightgreen" icon="av:play-circle-filled" on-tap="handleGenerateClick" disabled></paper-fab>
+        </paper-toolbar>
+
+        <div class="flex paddingby15paddingtopby35">
+            <div class="horizontal layout paddingtopby20">
+                <div class="horizontal layout"><paper-toggle-button id="ptbDateSlider" class="ltrdirection sidepaddingby5" checked></paper-toggle-button><span class="colorgray sidepaddingby5 margintopby5">{{immediateslidervaluetext}}</span></div>
+                <paper-slider id="psDate" class="flex ltrdirection" min="0" max="90" value="{{lastdayscount}}" pin on-value-change="handleSliderChange"></paper-slider>
+            </div>
+            <div class="horizontal layout">
+                <div>
+                    <div class="colorgray paddingby5">{{resources.datefrom}}</div>
+                    <paper-button on-tap="openDialogDateFrom" raised>{{datefromformatted}}</paper-button>
+                </div>
+                <div>
+                    <div class="colorgray paddingby5">{{resources.dateto}}</div>
+                    <paper-button on-tap="openDialogDateTo" raised>{{datetoformatted}}</paper-button>
+                </div>
+            </div>
+        </div>
+
+        <paper-material elavation="1">
+            <div id="divMultiSelectsContainer" class$="{{divslayout}} layout paddingtopby5">
+                <paper-header-panel id="phpEmployees" class="flex-2 cursorpointer" mode="waterfall">
+                    <paper-toolbar on-tap="handleLookupToolbarClick">
+                        <div class="flex"><iron-icon icon="filter-list" class="sidemarginby10"></iron-icon>{{resources.employees}}</div><span>{{totalselectedemployees}}</span>
+                    </paper-toolbar>
+                    <paper-input id="piFilterEmployees" class="flex" on-keyup="filterEmployees" no-label-float>
+                        <paper-icon-button prefix icon="search"></paper-icon-button>
+                    </paper-input>
+                    <iron-selector id="isEmployees" attr-for-selected="id" multi on-iron-select="handleIronSelectorsItemsChanged" on-iron-deselect="handleIronSelectorsItemsChanged">
+                        <template is="dom-repeat" items="{{employees}}">
+                            <div id="{{item.ID}}">{{item.Name}}</div>
+                        </template>
+                    </iron-selector>
+                    <div class="textcenter"><paper-spinner id="psEmployees" class="paddingtopby10"></paper-spinner></div>
+                </paper-header-panel>
+                <paper-header-panel id="phpJobCategories" class="flex cursorpointer" mode="waterfall">
+                    <paper-toolbar on-tap="handleLookupToolbarClick">
+                        <div class="flex"><iron-icon icon="filter-list" class="sidemarginby10"></iron-icon>{{resources.jobcategories}}</div><span>{{totalselectedjobcategories}}</span>
+                    </paper-toolbar>
+                    <paper-input id="piFilterJobCategories" class="flex" on-keyup="filterJobCategories" no-label-float>
+                        <paper-icon-button prefix icon="search"></paper-icon-button>
+                    </paper-input>
+                    <iron-selector id="isJobCategories" attr-for-selected="id" multi on-iron-select="handleIronSelectorsItemsChanged" on-iron-deselect="handleIronSelectorsItemsChanged">
+                        <template is="dom-repeat" items="{{jobcategories}}">
+                            <div id="{{item.ID}}">{{item.Name}}</div>
+                        </template>
+                    </iron-selector>
+                    <div class="textcenter"><paper-spinner id="psJobCategories" class="paddingtopby10"></paper-spinner></div>
+                </paper-header-panel>
+                <paper-header-panel id="phpJobTypes" class="flex cursorpointer" mode="waterfall">
+                    <paper-toolbar on-tap="handleLookupToolbarClick">
+                        <div class="flex"><iron-icon icon="filter-list" class="sidemarginby10"></iron-icon>{{resources.jobtypes}}</div><span>{{totalselectedjobtypes}}</span>
+                    </paper-toolbar>
+                    <paper-input id="piFilterJobTypes" class="flex" on-keyup="filterJobTypes" no-label-float>
+                        <paper-icon-button prefix icon="search"></paper-icon-button>
+                    </paper-input>
+                    <iron-selector id="isJobTypes" attr-for-selected="id" multi on-iron-select="handleIronSelectorsItemsChanged" on-iron-deselect="handleIronSelectorsItemsChanged">
+                        <template is="dom-repeat" items="{{jobtypes}}">
+                            <div id="{{item.ID}}">{{item.Name}}</div>
+                        </template>
+                    </iron-selector>
+                    <div class="textcenter"><paper-spinner id="psJobTypes" class="paddingtopby10"></paper-spinner></div>
+                </paper-header-panel>
+                <paper-header-panel id="phpJobStatuses" class="flex cursorpointer" mode="waterfall">
+                    <paper-toolbar on-tap="handleLookupToolbarClick">
+                        <div class="flex"><iron-icon icon="filter-list" class="sidemarginby10"></iron-icon>{{resources.jobstatuses}}</div><span>{{totalselectedjobstatuses}}</span>
+                    </paper-toolbar>
+                    <paper-input id="piFilterJobStatuses" class="flex" on-keyup="filterJobStatuses" no-label-float>
+                        <paper-icon-button prefix icon="search"></paper-icon-button>
+                    </paper-input>
+                    <iron-selector id="isJobStatuses" attr-for-selected="id" multi on-iron-select="handleIronSelectorsItemsChanged" on-iron-deselect="handleIronSelectorsItemsChanged">
+                        <template is="dom-repeat" items="{{jobstatuses}}">
+                            <div id="{{item.ID}}">{{item.Name}}</div>
+                        </template>
+                    </iron-selector>
+                    <div class="textcenter"><paper-spinner id="psJobStatuses" class="paddingtopby10"></paper-spinner></div>
+                </paper-header-panel>
+                <paper-header-panel id="phpAreas" class="flex cursorpointer" mode="waterfall">
+                    <paper-toolbar on-tap="handleLookupToolbarClick">
+                        <div class="flex"><iron-icon icon="filter-list" class="sidemarginby10"></iron-icon>{{resources.areas}}</div><span>{{totalselectedareas}}</span>
+                    </paper-toolbar>
+                    <paper-input id="piFilterAreas" class="flex" on-keyup="filterAreas" no-label-float>
+                        <paper-icon-button prefix icon="search"></paper-icon-button>
+                    </paper-input>
+                    <iron-selector id="isAreas" attr-for-selected="id" multi on-iron-select="handleIronSelectorsItemsChanged" on-iron-deselect="handleIronSelectorsItemsChanged">
+                        <template is="dom-repeat" items="{{areas}}">
+                            <div id="{{item.ID}}">{{item.Name}}</div>
+                        </template>
+                    </iron-selector>
+                    <div class="textcenter"><paper-spinner id="psAreas" class="paddingtopby10"></paper-spinner></div>
+                </paper-header-panel>
+            </div>
+        </paper-material>
+
+    </template>
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "report-filter",
+
+            behaviors: [Polymer.NeonAnimationRunnerBehavior],
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                },
+                islargescreen: {
+                    type: Boolean,
+                    observer: '_screenSizeChanged'
+                },
+                initiallastdayscount: {
+                    type: Number,
+                    observer: '_initialLastDaysCountChanged'
+                },
+                datefrom: {
+                    type: String
+                },
+                dateTo: {
+                    type: String
+                },
+                datefromformatted: {
+                    type: String
+                },
+                datetoformatted: {
+                    type: String
+                },
+                dateformat: {
+                    type: String,
+                    value: "DD-MM-YYYY",
+                    readOnly: true
+                },
+                filtercount: {
+                    type: Number,
+                    value: 5,
+                    readOnly: true
+                },
+                reporttitle: {
+                    type: String
+                },
+                totalselectedemployees: {
+                    type: String,
+                    value: ""
+                },
+                totalselectedjobcategories: {
+                    type: String,
+                    value: ""
+                },
+                totalselectedjobtypes: {
+                    type: String,
+                    value: ""
+                },
+                totalselectedjobstatuses: {
+                    type: String,
+                    value: ""
+                },
+                totalselectedareas: {
+                    type: String,
+                    value: ""
+                },
+                animationConfig: {
+                    value: function () {
+                        return {
+                            "entry": [{
+                                name: "scale-up-animation",
+                                node: this.$.pfGenerate,
+                                timing: { duration: 800, delay: 50 }
+                            }, {
+                                name: "scale-up-animation",
+                                node: this.$.pfResetAllFilters,
+                                timing: { duration: 800, delay: 50 }
+                            }],
+                        }
+                    }
+                }
+            },
+
+            attached: function () {
+
+                this.async(function () {
+
+                    this.initializeSOAP();
+                    this.initializeLookups();
+                    this.initializeDates();
+                    this._screenSizeChanged();
+                    this.initialized = true;
+
+                    this.$.iakReportFilter.target = document.body;
+
+                    this.$.pfGenerate.hidden = false;
+                    this.$.pfResetAllFilters.hidden = false;
+
+                    if (Configuration.FastClick)
+                        FastClick.attach(this);
+                });
+            },
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    if (aLanguage == "ar") {
+
+                        this.$.pibBackReportFilter.setAttribute("icon", "arrow-forward");
+
+                        this.style.setProperty("direction", "rtl");
+                    }
+                    else {
+
+                        this.$.pibBackReportFilter.setAttribute("icon", "arrow-back");
+
+                        this.style.setProperty("direction", "ltr");
+                    }
+                });
+            },
+
+            _initialLastDaysCountChanged: function (aNumOfDays) {
+
+                if (this.initialized) {
+
+                    this.updateSliderLabel(aNumOfDays);
+                }
+            },
+
+            _screenSizeChanged: function () {
+
+                if (this.islargescreen) {
+
+                    this.divslayout = "horizontal";
+                }
+                else {
+
+                    this.divslayout = "vertical";
+                }
+            },
+
+            animateTopbarButtons: function () {
+
+                this.$.pfResetAllFilters.style.display = "inline-block";
+                this.$.pfGenerate.style.display = "inline-block";
+
+                this.playAnimation("entry");
+            },
+
+            hideTopbarButtons: function () {
+
+                this.$.pfGenerate.style.display = "none";
+                this.$.pfResetAllFilters.style.display = "none";
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+            },
+
+            initializeSOAP: function () {
+
+                var Context = this;
+
+                $.soap({
+                    url: Configuration.ServerURL,
+                    appendMethodToURL: false,
+                    envAttributes: {
+                        'xmlns': 'http://tempuri.org/',
+                        'xmlns:soap': 'http://schemas.xmlsoap.org/soap/envelope/',
+                        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                        'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
+                        'xmlns:s': 'http://schemas.xmlsoap.org/soap/envelope/',
+                        'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'
+                    },
+                    error: function (aSOAPResponse) {
+
+                        if (aSOAPResponse.httpText.toUpperCase() == "CANCELED")
+                            return;
+
+                        Context.$.psAreas.active = false;
+                        Context.$.psEmployees.active = false;
+                        Context.$.psJobCategories.active = false;
+                        Context.$.psJobStatuses.active = false;
+                        Context.$.psJobTypes.active = false;
+
+                        Context.fire("iron-signal", { name: "soaprequestfail", data: aSOAPResponse.httpText });
+                    }
+                });
+            },
+
+            initializeLookups: function () {
+
+                this.lookuploadedcount = 0;
+
+                this.loadEmployees();
+                this.loadJobCategories();
+                this.loadJobTypes();
+                this.loadJobStatuses();
+                this.loadAreas();
+            },
+
+            initializeDates: function () {
+
+                this.datefrom = moment().subtract(this.initiallastdayscount, "day").toDate();
+                this.datefromformatted = moment().subtract(this.initiallastdayscount, "day").format(this.dateformat);
+
+                this.dateto = moment().toDate();
+                this.datetoformatted = moment().format(this.dateformat);
+
+                this.updateSliderLabel(this.initiallastdayscount);
+            },
+
+            loadEmployees: function () {
+
+                var Context = this;
+
+                $.soap({
+                    method: 'GetEmployeeNames', SOAPAction: Configuration.SOAPActionURL + '/GetEmployeeNames',
+                    data: {},
+                    beforeSend: function (SOAPEnvelope) {
+
+                        Context.$.psEmployees.active = true;
+                    },
+                    success: function (aResponse) {
+
+                        Context.employees = aResponse.toJSON().Body.GetEmployeeNamesResponse.GetEmployeeNamesResult.Result.LookupItem;
+                        Context.$.psEmployees.active = false;
+
+                        Context.activateGenerateButton();
+                    }
+                });
+            },
+
+            loadJobCategories: function () {
+
+                var Context = this;
+
+                $.soap({
+                    method: 'GetJobCategoriesList', SOAPAction: Configuration.SOAPActionURL + '/GetJobCategoriesList',
+                    data: {},
+                    beforeSend: function (SOAPEnvelope) {
+
+                        Context.$.psJobCategories.active = true;
+                    },
+                    success: function (aResponse) {
+
+                        Context.jobcategories = aResponse.toJSON().Body.GetJobCategoriesListResponse.GetJobCategoriesListResult.Result.LookupItem;
+                        Context.$.psJobCategories.active = false;
+
+                        Context.activateGenerateButton();
+                    }
+                });
+            },
+
+            loadJobTypes: function () {
+
+                var Context = this;
+
+                $.soap({
+                    method: 'GetJobTypesList', SOAPAction: Configuration.SOAPActionURL + '/GetJobTypesList',
+                    data: {},
+                    beforeSend: function (SOAPEnvelope) {
+
+                        Context.$.psJobTypes.active = true;
+                    },
+                    success: function (aResponse) {
+
+                        Context.jobtypes = aResponse.toJSON().Body.GetJobTypesListResponse.GetJobTypesListResult.Result.LookupItem;
+                        Context.$.psJobTypes.active = false;
+
+                        Context.activateGenerateButton();
+                    }
+                });
+            },
+
+            loadJobStatuses: function () {
+
+                var Context = this;
+
+                $.soap({
+                    method: 'GetJobStatuses', SOAPAction: Configuration.SOAPActionURL + '/GetJobStatuses',
+                    data: {},
+                    beforeSend: function (SOAPEnvelope) {
+
+                        Context.$.psJobStatuses.active = true;
+                    },
+                    success: function (aResponse) {
+
+                        Context.jobstatuses = aResponse.toJSON().Body.GetJobStatusesResponse.GetJobStatusesResult.Result.LookupItem;
+                        Context.$.psJobStatuses.active = false;
+
+                        Context.activateGenerateButton();
+                    }
+                });
+            },
+
+            loadAreas: function () {
+
+                var Context = this;
+
+                $.soap({
+                    method: 'GetAreaNames', SOAPAction: Configuration.SOAPActionURL + '/GetAreaNames',
+                    data: {},
+                    beforeSend: function (SOAPEnvelope) {
+
+                        Context.$.psAreas.active = true;
+                    },
+                    success: function (aResponse) {
+
+                        Context.areas = aResponse.toJSON().Body.GetAreaNamesResponse.GetAreaNamesResult.Result.LookupItem;
+                        Context.$.psAreas.active = false;
+
+                        Context.activateGenerateButton();
+                    }
+                });
+            },
+
+            getSelectedEmployees: function () {
+
+                var Context = this;
+
+                var SelectedEmployees = { LookupItem: [] };
+
+                var SelectedEmployeesArray = $.grep(this.employees, function (aEmployee) {
+
+                    return $.inArray(aEmployee.ID, Context.$.isEmployees.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedEmployeesArray.length; i++) {
+
+                    SelectedEmployees.LookupItem.push({ ID: "" + SelectedEmployeesArray[i].ID + "", Name: "" + SelectedEmployeesArray[i].Name + "" });
+                }
+
+                return SelectedEmployees;
+            },
+
+            getEncodedSelectedEmployees: function () {
+
+                var Context = this;
+
+                var SelectedEmployees = { LookupItem: [] };
+
+                var SelectedEmployeesArray = $.grep(this.employees, function (aEmployee) {
+
+                    return $.inArray(aEmployee.ID, Context.$.isEmployees.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedEmployeesArray.length; i++) {
+
+                    SelectedEmployees.LookupItem.push({ ID: EncodeXML(SelectedEmployeesArray[i].ID), Name: EncodeXML(SelectedEmployeesArray[i].Name) });
+                }
+
+                return SelectedEmployees;
+            },
+
+            getSelectedJobCategories: function () {
+
+                var Context = this;
+
+                var SelectedJobCategories = { LookupItem: [] };
+
+                var SelectedJobCategoriesArray = $.grep(this.jobcategories, function (aJobCategory) {
+
+                    return $.inArray(aJobCategory.ID, Context.$.isJobCategories.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedJobCategoriesArray.length; i++) {
+
+                    SelectedJobCategories.LookupItem.push({ ID: "" + SelectedJobCategoriesArray[i].ID + "", Name: "" + SelectedJobCategoriesArray[i].Name + "" });
+                }
+
+                return SelectedJobCategories;
+            },
+
+            getEncodedSelectedJobCategories: function () {
+
+                var Context = this;
+
+                var SelectedJobCategories = { LookupItem: [] };
+
+                var SelectedJobCategoriesArray = $.grep(this.jobcategories, function (aJobCategory) {
+
+                    return $.inArray(aJobCategory.ID, Context.$.isJobCategories.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedJobCategoriesArray.length; i++) {
+
+                    SelectedJobCategories.LookupItem.push({ ID: EncodeXML(SelectedJobCategoriesArray[i].ID), Name: EncodeXML(SelectedJobCategoriesArray[i].Name) });
+                }
+
+                return SelectedJobCategories;
+            },
+
+            getSelectedJobTypes: function () {
+
+                var Context = this;
+
+                var SelectedJobTypes = { LookupItem: [] };
+
+                var SelectedJobTypesArray = $.grep(this.jobtypes, function (aJobType) {
+
+                    return $.inArray(aJobType.ID, Context.$.isJobTypes.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedJobTypesArray.length; i++) {
+
+                    SelectedJobTypes.LookupItem.push({ ID: "" + SelectedJobTypesArray[i].ID + "", Name: "" + SelectedJobTypesArray[i].Name + "" });
+                }
+
+                return SelectedJobTypes;
+            },
+
+            getEncodedSelectedJobTypes: function () {
+
+                var Context = this;
+
+                var SelectedJobTypes = { LookupItem: [] };
+
+                var SelectedJobTypesArray = $.grep(this.jobtypes, function (aJobType) {
+
+                    return $.inArray(aJobType.ID, Context.$.isJobTypes.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedJobTypesArray.length; i++) {
+
+                    SelectedJobTypes.LookupItem.push({ ID: EncodeXML(SelectedJobTypesArray[i].ID), Name: EncodeXML(SelectedJobTypesArray[i].Name) });
+                }
+
+                return SelectedJobTypes;
+            },
+
+            getSelectedJobStatuses: function () {
+
+                var Context = this;
+
+                var SelectedJobStatuses = { LookupItem: [] };
+
+                var SelectedJobStatusesArray = $.grep(this.jobstatuses, function (aJobStatus) {
+
+                    return $.inArray(aJobStatus.ID, Context.$.isJobStatuses.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedJobStatusesArray.length; i++) {
+
+                    SelectedJobStatuses.LookupItem.push({ ID: "" + SelectedJobStatusesArray[i].ID + "", Name: "" + SelectedJobStatusesArray[i].Name + "" });
+                }
+
+                return SelectedJobStatuses;
+            },
+
+            getEncodedSelectedJobStatuses: function () {
+
+                var Context = this;
+
+                var SelectedJobStatuses = { LookupItem: [] };
+
+                var SelectedJobStatusesArray = $.grep(this.jobstatuses, function (aJobStatus) {
+
+                    return $.inArray(aJobStatus.ID, Context.$.isJobStatuses.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedJobStatusesArray.length; i++) {
+
+                    SelectedJobStatuses.LookupItem.push({ ID: EncodeXML(SelectedJobStatusesArray[i].ID), Name: EncodeXML(SelectedJobStatusesArray[i].Name) });
+                }
+
+                return SelectedJobStatuses;
+            },
+
+            getSelectedAreas: function () {
+
+                var Context = this;
+
+                var SelectedAreas = { LookupItem: [] };
+
+                var SelectedAreasArray = $.grep(this.areas, function (aArea) {
+
+                    return $.inArray(aArea.ID, Context.$.isAreas.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedAreasArray.length; i++) {
+
+                    SelectedAreas.LookupItem.push({ ID: "" + SelectedAreasArray[i].ID + "", Name: "" + SelectedAreasArray[i].Name + "" });
+                }
+
+                return SelectedAreas;
+            },
+
+            getEncodedSelectedAreas: function () {
+
+                var Context = this;
+
+                var SelectedAreas = { LookupItem: [] };
+
+                var SelectedAreasArray = $.grep(this.areas, function (aArea) {
+
+                    return $.inArray(aArea.ID, Context.$.isAreas.selectedValues) !== -1
+                });
+
+                for (var i = 0; i < SelectedAreasArray.length; i++) {
+
+                    SelectedAreas.LookupItem.push({ ID: EncodeXML(SelectedAreasArray[i].ID), Name: EncodeXML(SelectedAreasArray[i].Name) });
+                }
+
+                return SelectedAreas;
+            },
+
+            openDialogDateFrom: function () {
+
+                this.$.pdDateFrom.open();
+            },
+
+            openDialogDateTo: function () {
+
+                this.$.pdDateTo.open();
+            },
+
+            setDateFrom: function () {
+
+                if (moment(this.$.pdpFrom.date).isValid()) {
+
+                    this.datefrom = moment(this.$.pdpFrom.date).toDate();
+                    this.datefromformatted = moment(this.$.pdpFrom.date).format(this.dateformat);
+                }
+                else {
+                    this.datefrom = moment().toDate();
+                    this.datefromformatted = moment().format(this.dateformat);
+                }
+
+                this.$.ptbDateSlider.checked = false;
+            },
+
+            setDateTo: function () {
+
+                if (moment(this.$.pdpTo.date).isValid()) {
+
+                    this.dateto = moment(this.$.pdpTo.date).toDate();
+                    this.datetoformatted = moment(this.$.pdpTo.date).format(this.dateformat);
+                }
+                else {
+                    this.dateto = moment().toDate();
+                    this.datetoformatted = moment().format(this.dateformat);
+                }
+
+                this.$.ptbDateSlider.checked = false;
+            },
+
+            updateSliderLabel: function (aNumOfDays) {
+
+                this.lastdayscount = aNumOfDays;
+                this.immediateslidervaluetext = this.resources.last + " " + aNumOfDays + " " + this.resources.day;
+            },
+
+            clearIronList: function (aIronList) {
+
+                var Divs = aIronList.querySelectorAll("div");
+
+                for (var i = 0; i < Divs.length; i++) {
+
+                    Divs[i].hidden = true;
+                }
+            },
+
+            resetIronList: function (aIronList) {
+
+                var Divs = aIronList.querySelectorAll("div");
+
+                for (var i = 0; i < Divs.length; i++) {
+
+                    Divs[i].hidden = false;
+                }
+            },
+
+            filterEmployees: function () {
+
+                this.debounce("filterEmployees", function () {
+
+                    this.clearIronList(this.$.isEmployees);
+
+                    var SearchText = this.$.piFilterEmployees.value.trim().toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+                    var divCollection = this.$.isEmployees.querySelectorAll("div");
+
+                    if (SearchText == "") {
+
+                        this.resetIronList(this.$.isEmployees);
+                        return;
+                    }
+
+                    for (var i = 0; i < divCollection.length; i++) {
+
+                        var divText = divCollection[i].innerHTML.toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+
+                        if (divText.indexOf(SearchText) >= 0) {
+                            divCollection[i].hidden = false;
+                        }
+                        else {
+                            divCollection[i].hidden = true;
+                        }
+                    }
+
+                }, 600);
+            },
+
+            resetEmployeesFilter: function () {
+
+                this.$.piFilterEmployees.value = "";
+
+                this.resetIronList(this.$.isEmployees);
+
+                this.toggleClass("heightby380", false, this.$.phpEmployees);
+
+                this.$.isEmployees.selectedValues = [];
+
+                this.$.phpEmployees.scroller.scrollTop = 0;
+            },
+
+            filterJobCategories: function () {
+
+                this.debounce("filterJobCategories", function () {
+
+                    this.clearIronList(this.$.isJobCategories);
+
+                    var SearchText = this.$.piFilterJobCategories.value.trim().toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+                    var divCollection = this.$.isJobCategories.querySelectorAll("div");
+
+                    if (SearchText == "") {
+
+                        this.resetIronList(this.$.isJobCategories);
+                        return;
+                    }
+
+                    for (var i = 0; i < divCollection.length; i++) {
+
+                        var divText = divCollection[i].innerHTML.toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+
+                        if (divText.indexOf(SearchText) >= 0) {
+                            divCollection[i].hidden = false;
+                        }
+                        else {
+                            divCollection[i].hidden = true;
+                        }
+                    }
+
+                }, 600);
+            },
+
+            resetJobCategoriesFilter: function () {
+
+                this.$.piFilterJobCategories.value = "";
+
+                this.resetIronList(this.$.isJobCategories);
+
+                this.toggleClass("heightby380", false, this.$.phpJobCategories);
+
+                this.$.isJobCategories.selectedValues = [];
+
+                this.$.phpJobCategories.scroller.scrollTop = 0;
+            },
+
+            filterJobTypes: function () {
+
+                this.debounce("filterJobTypes", function () {
+
+                    this.clearIronList(this.$.isJobTypes);
+
+                    var SearchText = this.$.piFilterJobTypes.value.trim().toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+                    var divCollection = this.$.isJobTypes.querySelectorAll("div");
+
+                    if (SearchText == "") {
+
+                        this.resetIronList(this.$.isJobTypes);
+                        return;
+                    }
+
+                    for (var i = 0; i < divCollection.length; i++) {
+
+                        var divText = divCollection[i].innerHTML.toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+
+                        if (divText.indexOf(SearchText) >= 0) {
+                            divCollection[i].hidden = false;
+                        }
+                        else {
+                            divCollection[i].hidden = true;
+                        }
+                    }
+
+                }, 600);
+            },
+
+            resetJobTypesFilter: function () {
+
+                this.$.piFilterJobTypes.value = "";
+
+                this.resetIronList(this.$.isJobTypes);
+
+                this.toggleClass("heightby380", false, this.$.phpJobTypes);
+
+                this.$.isJobTypes.selectedValues = [];
+
+                this.$.phpJobTypes.scroller.scrollTop = 0;
+            },
+
+            filterJobStatuses: function () {
+
+                this.debounce("filterJobStatuses", function () {
+
+                    this.clearIronList(this.$.isJobStatuses);
+
+                    var SearchText = this.$.piFilterJobStatuses.value.trim().toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+                    var divCollection = this.$.isJobStatuses.querySelectorAll("div");
+
+                    if (SearchText == "") {
+
+                        this.resetIronList(this.$.isJobStatuses);
+                        return;
+                    }
+
+                    for (var i = 0; i < divCollection.length; i++) {
+
+                        var divText = divCollection[i].innerHTML.toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+
+                        if (divText.indexOf(SearchText) >= 0) {
+                            divCollection[i].hidden = false;
+                        }
+                        else {
+                            divCollection[i].hidden = true;
+                        }
+                    }
+
+                }, 600);
+            },
+
+            resetJobStatusesFilter: function () {
+
+                this.$.piFilterJobStatuses.value = "";
+
+                this.resetIronList(this.$.isJobStatuses);
+
+                this.toggleClass("heightby380", false, this.$.phpJobStatuses);
+
+                this.$.isJobStatuses.selectedValues = [];
+
+                this.$.phpJobStatuses.scroller.scrollTop = 0;
+            },
+
+            filterAreas: function () {
+
+                this.debounce("filterAreas", function () {
+
+                    this.clearIronList(this.$.isAreas);
+
+                    var SearchText = this.$.piFilterAreas.value.trim().toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+                    var divCollection = this.$.isAreas.querySelectorAll("div");
+
+                    if (SearchText == "") {
+
+                        this.resetIronList(this.$.isAreas);
+                        return;
+                    }
+
+                    for (var i = 0; i < divCollection.length; i++) {
+
+                        var divText = divCollection[i].innerHTML.toLowerCase().replace(/ /g, '').replace(/أ/g, "ا").replace(/إ/g, "ا").replace(/ى/g, "ي").replace(/ه/g, "ة");
+
+                        if (divText.indexOf(SearchText) >= 0) {
+                            divCollection[i].hidden = false;
+                        }
+                        else {
+                            divCollection[i].hidden = true;
+                        }
+                    }
+
+                }, 600);
+            },
+
+            resetAreasFilter: function () {
+
+                this.$.piFilterAreas.value = "";
+
+                this.resetIronList(this.$.isAreas);
+
+                this.toggleClass("heightby380", false, this.$.phpAreas);
+
+                this.$.isAreas.selectedValues = [];
+
+                this.$.phpAreas.scroller.scrollTop = 0;
+            },
+
+            activateGenerateButton: function () {
+
+                this.lookuploadedcount += 1;
+
+                if (this.lookuploadedcount == this.filtercount) {
+
+                    this.enableGenerateButton();
+                    this.hideLoadingSpinner();
+                }
+            },
+
+            handleIronSelectorsItemsChanged: function (aEvent) {
+
+                var IronSelectorID = aEvent.currentTarget.id;
+
+                if (IronSelectorID == "isEmployees") {
+
+                    this.totalselectedemployees = this.$.isEmployees.selectedValues.length == 0 ? "" : this.$.isEmployees.selectedValues.length;
+                }
+                else if (IronSelectorID == "isJobCategories") {
+
+                    this.totalselectedjobcategories = this.$.isJobCategories.selectedValues.length == 0 ? "" : this.$.isJobCategories.selectedValues.length;
+                }
+                else if (IronSelectorID == "isJobTypes") {
+
+                    this.totalselectedjobtypes = this.$.isJobTypes.selectedValues.length == 0 ? "" : this.$.isJobTypes.selectedValues.length;;
+                }
+                else if (IronSelectorID == "isJobStatuses") {
+
+                    this.totalselectedjobstatuses = this.$.isJobStatuses.selectedValues.length == 0 ? "" : this.$.isJobStatuses.selectedValues.length;
+                }
+                else if (IronSelectorID == "isAreas") {
+
+                    this.totalselectedareas = this.$.isAreas.selectedValues.length == 0 ? "" : this.$.isAreas.selectedValues.length;
+                }
+            },
+
+            handleLookupToolbarClick: function (aEvent) {
+
+                var HasHeight = false;
+
+                for (var i = 0; i < aEvent.currentTarget.offsetParent.classList.length; i++) {
+
+                    if (aEvent.currentTarget.offsetParent.classList[i] == "heightby380")
+                        HasHeight = true;
+                }
+
+                if (HasHeight)
+                    this.toggleClass("heightby380", false, aEvent.currentTarget.offsetParent);
+                else
+                    this.toggleClass("heightby380", true, aEvent.currentTarget.offsetParent);
+            },
+
+            handleGenerateClick: function (aEvent) {
+
+                if (moment(moment(this.$.pdpFrom.date)).isSame(moment(this.$.pdpTo.date)) || moment(moment(this.$.pdpFrom.date)).isAfter(moment(this.$.pdpTo.date))) {
+
+                    this.fire("iron-signal", { name: "invaliddates", data: this.resources.invaliddates });
+                }
+                else {
+                    this.fire("generate-clicked", { isdaterange: !this.$.ptbDateSlider.checked, datefrom: this.$.pdpFrom.date, dateto: this.$.pdpTo.date, lastnumdays: this.$.psDate.immediateValue, selectedemployees: this.getSelectedEmployees(), encodedselectedemployees: this.getEncodedSelectedEmployees(), selectedjobcategories: this.getSelectedJobCategories(), encodedselectedjobcategories: this.getEncodedSelectedJobCategories(), selectedjobtypes: this.getSelectedJobTypes(), encodedselectedjobtypes: this.getEncodedSelectedJobTypes(), selectedjobstatuses: this.getSelectedJobStatuses(), encodedselectedjobstatuses: this.getEncodedSelectedJobStatuses(), selectedareas: this.getSelectedAreas(), encodedselectedareas: this.getEncodedSelectedAreas() });
+                }
+            },
+
+            handleResetFilter: function () {
+
+                this.initializeDates();
+
+                this.resetEmployeesFilter();
+                this.resetJobCategoriesFilter();
+                this.resetJobTypesFilter();
+                this.resetJobStatusesFilter();
+                this.resetAreasFilter();
+
+                if (this.$.pfGenerate.disabled) {
+
+                    this.initializeLookups();
+                }
+            },
+
+            handleArrowsKey: function (aEvent) {
+
+                if (aEvent.detail.keyboardEvent.keyIdentifier.toUpperCase() == "RIGHT")
+                    this.$.psDate.increment();
+                else
+                    this.$.psDate.decrement();
+            },
+
+            handleSliderChange: function () {
+
+                if (this.initialized) {
+
+                    this.updateSliderLabel(this.$.psDate.immediateValue);
+                    this.$.ptbDateSlider.checked = true;
+
+                    this.dateto = moment().toDate();
+                    this.datetoformatted = moment().format(this.dateformat);
+
+                    this.datefrom = moment().subtract(this.$.psDate.immediateValue, 'day').toDate();
+                    this.datefromformatted = moment().subtract(this.$.psDate.immediateValue, 'day').format(this.dateformat);
+                }
+            },
+
+            handleToolbarBackClick: function () {
+
+                this.fire("back-clicked", null);
+            },
+
+            showGeneratingSpinner: function () {
+
+                this.$.psLoading.active = true;
+            },
+
+            hideLoadingSpinner: function () {
+
+                this.$.psLoading.active = false;
+                this.$.pfGenerate.disabled = false;
+            },
+
+            enableGenerateButton: function () {
+
+                if (this.lookuploadedcount == this.filtercount) {
+
+                    this.$.pfGenerate.disabled = false;
+                }
+                else {
+
+                    this.$.pfGenerate.disabled = true;
+                }
+            },
+
+            disableGenerateButton: function () {
+
+                this.$.pfGenerate.disabled = true;
+            },
+
+            handleIronOverlayOpened: function (aEvent) {
+
+                if (aEvent.target.withBackdrop) {
+
+                    aEvent.target.parentNode.insertBefore(aEvent.target.backdropElement, aEvent.target);
+                }
+            }
+
+        });
+
+    </script>
+
+</dom-module>

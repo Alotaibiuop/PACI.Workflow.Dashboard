@@ -1,0 +1,2077 @@
+﻿<dom-module id="main-dashboard">
+
+    <template>
+
+        <style include="shared-styles">
+
+        </style>
+
+        <style>
+            paper-card {
+                width: 100%;
+                background-color: #ffffff;
+            }
+
+            paper-progress {
+                --paper-progress-active-color: rgb(238, 106, 106);
+            }
+
+            .pfactionright {
+                position: fixed;
+                bottom: 10px;
+                right: 30px;
+                z-index: 1000000000;
+            }
+
+            .pfactionleft {
+                position: fixed;
+                bottom: 10px;
+                left: 30px;
+                z-index: 1000000000;
+            }
+
+        </style>
+
+        <localization-resources language="{{language}}"
+                                on-load="initializeResources">
+        </localization-resources>
+
+        <iron-localstorage name="user-profile"
+                           value="{{user}}"
+                           on-iron-localstorage-load="handleUserProfileLocalStorageLoad">
+        </iron-localstorage>
+
+        <reportdata-generator id="reportDataGeneratorMainDashboard"
+                              language="{{language}}"
+                              on-success="handleReportDataGeneratorSuccess">
+        </reportdata-generator>
+
+        <neighborhoods-lookup id="neighborhoodsLookup" on-load="handleNeighborhoodsLookupLoad">
+
+        </neighborhoods-lookup>
+
+        <iron-media-query query="(min-width: 770px)"
+                          query-matches="{{islargescreen}}">
+        </iron-media-query>
+
+        <paper-fab id="pfMainDashboardRefresh" class$="{{pfaction}} bgcolorlightred" icon="icons:refresh" on-tap="refreshDashboard">
+
+        </paper-fab>
+
+        <paper-toolbar>
+            <paper-icon-button id="pibMainDashboardMenu" class="middle" icon="menu" on-tap="handleToolbarMenuClick"></paper-icon-button>
+            <div class="middle title flex">{{resources.maindashboard}}</div>
+            <paper-icon-button class="middle" icon="icons:refresh" on-tap="refreshDashboard"></paper-icon-button>
+        </paper-toolbar>
+
+        <paper-tabs id="ptsMainDashboard" selected="0" class="selectedtab" noink>
+            <paper-tab id="ptTodayDashboard" on-tap="handlePaperTabClick">{{resources.today}}</paper-tab>
+            <paper-tab id="ptYesterdayDashboard" on-tap="handlePaperTabClick">{{resources.yesterday}}</paper-tab>
+            <paper-tab id="ptLast30DaysDashboard" on-tap="handlePaperTabClick">{{resources.last30days}}</paper-tab>
+            <paper-tab id="ptAllTimesDashboard" on-tap="handlePaperTabClick">{{resources.alltimes}}</paper-tab>
+        </paper-tabs>
+
+        <iron-pages id="ipMainDashboard" selected="{{selectedview}}">
+
+            <paper-material id="pmDashboardDay" elevation="1" class="paddingby5">
+
+                <div class$="{{divslayout}}">
+
+                    <paper-card id="pcTotalJobsDay" class="flex heightby100">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colororange" icon="icons:work"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardnumber">{{totaljobstoday}}</span>
+                                    <div class="fontsize12 colorgray">{{resources.clntotaljobs}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card id="pcTotalActiveJobsDay" class="flex heightby100">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorgreen" icon="icons:work"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardnumber">{{totalactivejobstoday}}</span>
+                                    <div class="fontsize12 colorgray">{{resources.totaljobsactive}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card id="pcTotalClosedJobsDay" class="flex heightby100">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorgray" icon="icons:work"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardnumber">{{totalclosedjobstoday}}</span>
+                                    <div class="fontsize12 colorgray">{{resources.totaljobsclosed}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card id="pcTotalRejectedJobsDay" class="flex heightby100">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorlightgray" icon="icons:work"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardnumber">{{totalrejectedjobstoday}}</span><span class="maindashboardpercentage">{{totalpercentagerejectedjobstoday}}</span>
+                                    <div class="fontsize12 colorgray">{{resources.totaljobsrejected}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div class$="{{divslayout}} margintopby5">
+
+                    <paper-card class="flex heightby710">
+                        <div class="card-content textcenter">
+
+                            <esri-map id="esriMapDayTopArea" language="{{language}}" height="400" mapid="esrimapdaytopareas" on-esrimapdaytopareas-load="handleESRIMapLoad"></esri-map>
+
+                            <div class="flex textcenter fontsize16 colorfalseblack margintopby15">{{resources.topareasperformance}}</div>
+                            <div id="divDayAreasPerformanceChart" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div class$="{{divslayout}} margintopby5">
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+
+                            <div class="flex textcenter fontsize16 colorfalseblack margintopby15">{{resources.employeesperformance}}</div>
+                            <div id="divDayOfficeUsersPerformanceDetailedPerformanceChart" class="heightby260">
+                                <img src="../../images/Underconstruction.png" style="width: 50px; height: 50px; margin-top: 20px;" />
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div id="divGaugeContainerEstablishmentAddresses" class$="{{divslayout}} margintopby5">
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.establishmentsaverageperformance}}</div>
+                            <div id="divDayJobCategoryEstablishmentsAveragePerformanceGauge" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.addressesaverageperformance}}</div>
+                            <div id="divDayJobCategoryAddressesAveragePerformanceGauge" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div id="divGaugeContainerBoundaryResidences" class$="{{divslayout}} margintopby5">
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.boundaryupdateaverageperformance}}</div>
+                            <div id="divDayJobCategoryBoundaryUpdateAveragePerformanceGauge" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.residencesaverageperformance}}</div>
+                            <div id="divDayJobCategoryResidencesAveragePerformanceGauge" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div class$="{{divslayout}} margintopby5">
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.jobcategoriesperformance}}</div>
+                            <div id="divDayJobCategoriesPerformanceChart" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.topassginedfieldresearchersperformance}}</div>
+                            <div id="divDayFieldResearchersPerformanceChart" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div class$="{{divslayout}} margintopby5">
+
+                    <paper-card class="flex heightby260">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.topcreatorsperformance}}</div>
+                            <div id="divDayCreatorsPerformanceChart" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+            </paper-material>
+
+            <paper-material id="pmDashboardAllTimes" elevation="1">
+
+                <div class$="{{divslayout}}">
+
+                    <paper-card id="pcTotalJobs" class="flex heightby300">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorlightcoral" icon="icons:work"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardnumber">{{totaljobs}}</span>
+                                    <div class="fontsize12 colorgray">{{resources.alltimetotaljobs}}</div>
+                                </div>
+                            </div>
+                            <div id="divAllJobCategoryPerformanceChart" class="heightby200">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card id="pcTotalActiveJobs" class="flex heightby300">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorgreen" icon="icons:work"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardnumber">{{totalactivejobs}}</span>
+                                    <div class="fontsize14 colorgray">{{resources.alltimeactivetotaljobs}}</div>
+                                </div>
+                            </div>
+                            <div id="divActiveJobCategoryPerformanceChart" class="heightby200">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card id="pcTotalClosedJobs" class="flex heightby300">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorgray" icon="icons:done-all"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardnumber">{{totalclosedjobs}}</span>
+                                    <div class="fontsize14 colorgray">{{resources.alltimeclosedtotaljobs}}</div>
+                                </div>
+                            </div>
+                            <div id="divClosedJobCategoryPerformanceChart" class="heightby200">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                    <paper-card class="flex heightby300">
+                        <div class="card-content textcenter">
+                            <div class="flex textcenter fontsize16 colorfalseblack">{{resources.alltimejobsperformance}}</div>
+                            <div id="divJobsPerformanceChart" class="heightby260">
+
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div class$="{{divslayout}} margintopby5">
+
+                    <paper-card class="flex heightby490">
+                        <div class="card-content">
+                            <div id="pcTopArea" class="horizontal layout paddingbottomby5">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorsteelblue" icon="maps:place"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardstring">{{toparea}}</span>
+                                    <div class="fontsize14 colorgray">{{resources.alltimetopworkingarea}}</div>
+                                </div>
+                            </div>
+                            <esri-map id="esriMapAllTimeTopArea" language="{{language}}" mapid="esrimapalltimetoparea" zoomlevel="12" on-esrimapalltimetoparea-load="handleESRIMapLoad"></esri-map>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+                <div class$="{{divslayout}} margintopby5">
+
+                    <paper-card id="pcTopFieldResearcher" class="flex heightby100">
+                        <div class="card-content">
+                            <div class="horizontal layout">
+                                <div class="sidemarginby10"><iron-icon class="cardicon colorperu" icon="notification:drive-eta"></iron-icon></div>
+                                <div>
+                                    <span class="maindashboardstring">{{topfieldresearcher}}</span>
+                                    <div class="fontsize14 colorgray">{{resources.alltimetopfieldresearcher}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </div>
+
+            </paper-material>
+
+        </iron-pages>
+
+    </template>
+
+    <script type="text/javascript">
+
+        Polymer({
+
+            is: "main-dashboard",
+
+            behaviors: [Polymer.NeonAnimationRunnerBehavior],
+
+            properties: {
+                language: {
+                    type: String,
+                    observer: '_languageChanged'
+                },
+                islargescreen: {
+                    type: Boolean,
+                    observer: '_screenSizeChanged'
+                },
+                selectedview: {
+                    type: Number,
+                    value: 0,
+                    observer: "_selectedViewChanged"
+                },
+                dayview: {
+                    type: Number,
+                    value: 0,
+                    readOnly: true
+                },
+                alltimesview: {
+                    type: Number,
+                    value: 1,
+                    readOnly: true
+                },
+                neighborhoodsloaded: {
+                    type: Boolean
+                },
+                topareamaploaded: {
+                    type: Boolean
+                },
+                toparea: {
+                    type: Number
+                },
+                topareasmaploaded: {
+                    type: Boolean
+                },
+                topareas: {
+                    type: Object
+                },
+                fieldresearcherslastlocation: {
+                    type: Object
+                },
+                fieldresearcherslocationsloaded: {
+                    type: Boolean
+                },
+                charts: {
+                    type: Array,
+                    value: []
+                },
+                animationConfig: {
+                    value: function () {
+                        return {
+                            "entry": {
+                                name: "scale-up-animation",
+                                node: this.$.pfMainDashboardRefresh,
+                                timing: { duration: 500 }
+                            }
+                        }
+                    }
+                }
+            },
+
+            observers: [
+                "ZoomToAllTimeTopArea(neighborhoodsloaded, topareamaploaded, toparea)",
+                "ZoomAndClassBreakDayTopAreas(neighborhoodsloaded, topareasmaploaded, topareas)",
+                "ShowFieldResearchersOnMap(topareasmaploaded, fieldresearcherslastlocation)"
+            ],
+
+            attached: function () {
+
+                this.async(function () {
+
+                    this.$.esriMapAllTimeTopArea.configuration.mapurl = Configuration.MapURL;
+                    this.$.esriMapAllTimeTopArea.configuration.satellitemapurl = Configuration.SatelliteMapURL;
+                    this.$.esriMapAllTimeTopArea.spatialReference = { "wkid": 102100 };
+
+                    this.$.esriMapDayTopArea.configuration.mapurl = Configuration.MapURL;
+                    this.$.esriMapDayTopArea.configuration.satellitemapurl = Configuration.SatelliteMapURL;
+                    this.$.esriMapDayTopArea.spatialReference = { "wkid": 102100 };
+
+                    this.$.pfMainDashboardRefresh.hidden = true;
+
+                    this._screenSizeChanged();
+
+                    if (Configuration.FastClick)
+                        FastClick.attach(this);
+                });
+            },
+
+            _languageChanged: function (aLanguage) {
+
+                this.async(function () {
+
+                    var divCharts = this.$.ipMainDashboard.querySelectorAll("div[id*='Chart']");
+
+                    if (aLanguage == "ar") {
+
+                        this.style.setProperty("direction", "rtl");
+                        this.pfaction = "pfactionleft";
+
+                        for (var i = 0; i < divCharts.length; i++) {
+
+                            divCharts[i].style.setProperty("direction", "ltr");
+                        }
+                    }
+                    else {
+
+                        this.style.setProperty("direction", "ltr");
+                        this.pfaction = "pfactionright";
+
+                        for (var i = 0; i < divCharts.length; i++) {
+
+                            divCharts[i].style.setProperty("direction", "ltr");
+                        }
+                    }
+
+                });
+            },
+
+            _screenSizeChanged: function () {
+
+                if (this.islargescreen) {
+
+                    this.divslayout = "horizontal layout";
+
+                    this.$.pibMainDashboardMenu.hidden = true;
+                }
+                else {
+
+                    this.divslayout = "vertical layout";
+
+                    this.$.pibMainDashboardMenu.hidden = false;
+                }
+            },
+
+            _selectedViewChanged: function (aNewValue, aOldValue) {
+
+                if (aOldValue == null) {
+                    return;
+                }
+
+                if (aNewValue == 0) {
+
+                    this.$.divGaugeContainerEstablishmentAddresses.hidden = true;
+                    this.$.divGaugeContainerBoundaryResidences.hidden = true;
+
+                    if (aOldValue == -1)
+                        this.getDayDashboardData("Today");
+                    else if (aOldValue == -2)
+                        this.getDayDashboardData("Yesterday");
+                    else if (aOldValue == -3) {
+
+                        this.$.divGaugeContainerEstablishmentAddresses.hidden = false;
+                        this.$.divGaugeContainerBoundaryResidences.hidden = false;
+
+                        this.getDayDashboardData("Last30Days");
+                    }
+                }
+
+                else if (aNewValue == 1) {
+
+                    this.getAllTimeDashboardData();
+                    this.getAllTimeJobCategoryPerformance();
+                }
+            },
+
+            initializeSOAP: function () {
+
+                var Context = this;
+
+                $.soap({
+                    url: Configuration.ServerURL,
+                    appendMethodToURL: false,
+                    envAttributes: {
+                        'xmlns': 'http://tempuri.org/',
+                        'xmlns:soap': 'http://schemas.xmlsoap.org/soap/envelope/',
+                        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                        'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
+                        'xmlns:s': 'http://schemas.xmlsoap.org/soap/envelope/',
+                        'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'
+                    },
+                    error: function (aSOAPResponse) {
+
+                        if (aSOAPResponse.status.toUpperCase() == "CANCELED")
+                            return;
+
+                        Context.fire("iron-signal", { name: "soaprequestfail", data: aSOAPResponse.httpText });
+                    }
+                });
+            },
+
+            initializeResources: function (aEvent) {
+
+                this.resources = aEvent.detail.resources;
+
+                if (this.resources && this.user && !this.dashboardrefreshed) {
+
+                    this.dashboardrefreshed = true;
+                    this.refreshDashboard();
+                }
+            },
+
+            initializeDashboardAutoRefresh: function () {
+
+                var Context = this;
+
+                function UpdateAutoRefreshProgress() {
+
+                    Context.$.ppRefresh.value = parseInt(Context.$.ppRefresh.value) + 1;
+                    Context.refreshremainingseconds = Context.formatSecondsToMS((300 - Context.$.ppRefresh.value));
+
+                    if (Context.$.ppRefresh.value == 300) {
+
+                        Context.$.ppRefresh.value = 0;
+                        Context.refreshDashboard();
+                    }
+                }
+
+                setInterval(UpdateAutoRefreshProgress, 1000);
+            },
+
+            refreshDashboard: function () {
+
+                if (this.$.ptsMainDashboard.selected == 0) {
+
+                    this.selectedview = -1;
+                    this.selectedview = this.dayview;
+                }
+                else if (this.$.ptsMainDashboard.selected == 1) {
+
+                    this.selectedview = -2;
+                    this.selectedview = this.dayview;
+                }
+                else if (this.$.ptsMainDashboard.selected == 2) {
+
+                    this.selectedview = -3;
+                    this.selectedview = this.dayview;
+                }
+                else if (this.$.ptsMainDashboard.selected == 3) {
+
+                    this.selectedview = -1;
+                    this.selectedview = this.alltimesview;
+                }
+            },
+
+            formatSecondsToMS: function (aSeconds) {
+
+                var d = Number(aSeconds);
+                var h = Math.floor(d / 3600);
+                var m = Math.floor(d % 3600 / 60);
+                var s = Math.floor(d % 3600 % 60);
+                return ((h > 0 ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (s < 10 ? "0" : "") + s);
+            },
+
+            getAllTimeDashboardData: function () {
+
+                var Context = this;
+
+                $.soap({
+
+                    method: "GetDashborad", SOAPAction: Configuration.SOAPActionURL + "/GetDashborad",
+                    data: {},
+                    beforeSend: function (aSOAPEnvelope) {
+
+                        Context.totaljobs = "...";
+                        Context.toggleClass("loading", true, Context.$.pcTotalJobs);
+
+                        Context.totalactivejobs = "...";
+                        Context.toggleClass("loading", true, Context.$.pcTotalActiveJobs);
+
+                        Context.totalclosedjobs = "...";
+                        Context.toggleClass("loading", true, Context.$.pcTotalClosedJobs);
+
+                        Context.toparea = "...";
+                        Context.toggleClass("loading", true, Context.$.pcTopArea);
+
+                        Context.$.esriMapAllTimeTopArea.clearSelections();
+
+                        Context.topfieldresearcher = "...";
+                        Context.toggleClass("loading", true, Context.$.pcTopFieldResearcher);
+                    },
+                    success: function (aResponse) {
+
+                        var OResult = aResponse.toJSON().Body.GetDashboradResponse.GetDashboradResult;
+
+                        if (JSON.parse(OResult.IsSuccessful) == true) {
+
+                            if (OResult.Result && OResult.Result.Dashboard) {
+
+                                Context.totaljobs = OResult.Result.Dashboard.TotalJobs;
+                                Context.toggleClass("loading", false, Context.$.pcTotalJobs);
+
+                                Context.totalactivejobs = OResult.Result.Dashboard.TotalJobsActive;
+                                Context.toggleClass("loading", false, Context.$.pcTotalActiveJobs);
+
+                                Context.totalclosedjobs = OResult.Result.Dashboard.TotalJobsClosed;
+                                Context.toggleClass("loading", false, Context.$.pcTotalClosedJobs);
+
+                                Context.toparea = OResult.Result.Dashboard.AreaName;
+                                Context.toggleClass("loading", false, Context.$.pcTopArea);
+
+                                Context.topfieldresearcher = OResult.Result.Dashboard.FieldResearcherFullName;
+                                Context.toggleClass("loading", false, Context.$.pcTopFieldResearcher);
+
+                                var StyleDirection = (this.language == "ar" ? "style='direction:rtl'" : "");
+
+                                window.chart = new Highcharts.Chart({
+                                    chart: {
+                                        renderTo: Context.$.ipMainDashboard.querySelector("#divJobsPerformanceChart"),
+                                    },
+                                    title: {
+                                        text: "",
+                                        style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "20px;" }
+                                    },
+                                    tooltip: {
+                                        headerFormat: "<div " + StyleDirection + "><span style=\"font-family: Roboto, Noto, sans-serif; font-size:14px; color: white;\">{point.key}</span><table>",
+                                        pointFormat: "<span style=\"font-family: Roboto, Noto, sans-serif; font-size:14px; color: white;\">: {point.percentage:.1f}%<span>",
+                                        backgroundColor: "#737373",
+                                        borderRadius: 3,
+                                        borderWidth: 0,
+                                        shadow: false
+                                    },
+                                    plotOptions: {
+                                        pie: {
+                                            dataLabels: {
+                                                enabled: false
+                                            },
+                                            showInLegend: true,
+                                            allowPointSelect: true,
+                                            cursor: "pointer"
+                                        }
+                                    },
+                                    credits: {
+                                        enabled: false
+                                    },
+                                    series: [{
+                                        type: "pie",
+                                        innerSize: '40%',
+                                        data: [
+                                            [Context.resources.active, parseInt(OResult.Result.Dashboard.TotalJobsActive)],
+                                            [Context.resources.closed, parseInt(OResult.Result.Dashboard.TotalJobsClosed)]
+                                        ]
+                                    }]
+                                });
+                            }
+                            else {
+
+                                Context.fire("iron-signal", { name: "nodatafound", data: Context.resources.nodatafound });
+                            }
+                        }
+                        else {
+
+                            Context.fire("iron-signal", { name: "operationunsuccessful", data: OResult.ErrorMessage });
+                        }
+                    }
+                });
+            },
+
+            getAllTimeJobCategoryPerformance: function () {
+
+                this.$.esriMapDayTopArea.resetCachedLocations();
+
+                this.clearCharts();
+
+                /* All */
+                var Criteria = {
+                    isdaterange: true,
+                    datefrom: moment(new Date(2010, 1, 1)).toDate(),
+                    dateto: moment().add(1, "day").toDate(),
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetJobCategoryPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "AllJobCategoryPerformance"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+
+                /* Active */
+                Criteria = {
+                    isdaterange: true,
+                    datefrom: moment(new Date(2010, 1, 1)).toDate(),
+                    dateto: moment().add(1, "day").toDate(),
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: {
+                        LookupItem: [
+                            { ID: EncodeXML("جاري العمل في الميدان - المتابعة"), Name: EncodeXML("جاري العمل في الميدان - المتابعة") },
+                            { ID: EncodeXML("انتهى العمل في الميدان - المراجعة"), Name: EncodeXML("انتهى العمل في الميدان - المراجعة") },
+                            { ID: EncodeXML("مرفوض - الشهادات"), Name: EncodeXML("مرفوض - الشهادات") },
+                            { ID: EncodeXML("التعديلات مقبولة - المراجعة"), Name: EncodeXML("التعديلات مقبولة - المراجعة") },
+                            { ID: EncodeXML("طلب جديد - المتابعة"), Name: EncodeXML("طلب جديد - المتابعة") },
+                            { ID: EncodeXML("تعديلات إضافية - المتابعة"), Name: EncodeXML("تعديلات إضافية - المتابعة") },
+                            { ID: EncodeXML("مطلوب زيارة ميدانية ثانية - المتابعة"), Name: EncodeXML("مطلوب زيارة ميدانية ثانية - المتابعة") },
+                            { ID: EncodeXML("مطلوب إضافة قسيمة - قسم الخرائط"), Name: EncodeXML("مطلوب إضافة قسيمة - قسم الخرائط") },
+                            { ID: EncodeXML("تمت إضافة القسيمة - المتابعة"), Name: EncodeXML("تمت إضافة القسيمة - المتابعة") },
+                            { ID: EncodeXML("للتدقيق - المراجعة"), Name: EncodeXML("للتدقيق - المراجعة") }]
+                    },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetJobCategoryPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "ActiveJobCategoryPerformance"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+
+                /* Closed */
+                Criteria = {
+                    isdaterange: true,
+                    datefrom: moment(new Date(2010, 1, 1)).toDate(),
+                    dateto: moment().add(1, "day").toDate(),
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [{ ID: EncodeXML("طلب منتهي"), Name: EncodeXML("طلب منتهي") }] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetJobCategoryPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "ClosedJobCategoryPerformance"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            startDayDashboardLoading: function () {
+
+                this.$.esriMapDayTopArea.resetCachedLocations();
+                this.$.esriMapDayTopArea.clearRenderers();
+                this.$.esriMapDayTopArea.clearLegend();
+
+                this.clearCharts();
+
+                this.toggleClass("loading", true, this.$.pcTotalJobsDay);
+                this.totaljobstoday = "...";
+
+                this.toggleClass("loading", true, this.$.pcTotalActiveJobsDay);
+                this.totalactivejobstoday = "...";
+
+                this.toggleClass("loading", true, this.$.pcTotalClosedJobsDay);
+                this.totalclosedjobstoday = "...";
+
+                this.toggleClass("loading", true, this.$.pcTotalRejectedJobsDay);
+                this.totalrejectedjobstoday = "...";
+                this.totalpercentagerejectedjobstoday = "";
+
+                this.rejectedpercentagevaluescounter = 0;
+            },
+
+            getDayDashboardData: function (aDay) {
+
+                var DateFrom = null;
+                var DateTo = null;
+
+                this.startDayDashboardLoading();
+
+                if (aDay == "Today") {
+
+                    DateFrom = moment().startOf('day').toDate();
+                    DateTo = moment().add(1, "day").toDate();
+                }
+
+                else if (aDay == "Yesterday") {
+
+                    DateFrom = moment().add(-1, 'days').startOf('day').toDate();
+                    DateTo = moment().startOf('day').toDate();
+                }
+
+                else if (aDay == "Last30Days") {
+
+                    DateFrom = moment().add(-30, 'days').startOf('day').toDate();
+                    DateTo = moment().add(1, "day").toDate();
+
+                    this.getJobCategoriesAveragePerformance(DateFrom, DateTo);
+                }
+
+                this.getDailyJobsPerformance(DateFrom, DateTo);
+                this.getActiveDailyJobsPerformance(DateFrom, DateTo);
+                this.getClosedDailyJobsPerformance(DateFrom, DateTo);
+                this.getRejectedDailyJobsPeformance(DateFrom, DateTo);
+                this.getEmployeesPerformance(DateFrom, DateTo);
+                this.getAreasPerformance(DateFrom, DateTo);
+                this.getJobCategoriesPerformance(DateFrom, DateTo);
+                this.getFieldResearchersPerformance(DateFrom, DateTo);
+                //this.getEmployeesDetailedPerformance(DateFrom, DateTo);
+
+                if (aDay == "Yesterday") {
+
+                    DateFrom = moment().add(-1, 'days').startOf('day').toDate();
+                    DateTo = moment().add(1, "day").toDate();
+                }
+
+                this.getFieldResearchersLastLocation(DateFrom, DateTo);
+            },
+
+            getDailyJobsPerformance: function (aDateFrom, aDateTo) {
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetDailyPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "AllDailyPerformanceReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getActiveDailyJobsPerformance: function (aDateFrom, aDateTo) {
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: {
+                        LookupItem: [
+                                { ID: EncodeXML("جاري العمل في الميدان - المتابعة"), Name: EncodeXML("جاري العمل في الميدان - المتابعة") },
+                                { ID: EncodeXML("انتهى العمل في الميدان - المراجعة"), Name: EncodeXML("انتهى العمل في الميدان - المراجعة") },
+                                { ID: EncodeXML("مرفوض - الشهادات"), Name: EncodeXML("مرفوض - الشهادات") },
+                                { ID: EncodeXML("التعديلات مقبولة - المراجعة"), Name: EncodeXML("التعديلات مقبولة - المراجعة") },
+                                { ID: EncodeXML("طلب جديد - المتابعة"), Name: EncodeXML("طلب جديد - المتابعة") },
+                                { ID: EncodeXML("تعديلات إضافية - المتابعة"), Name: EncodeXML("تعديلات إضافية - المتابعة") },
+                                { ID: EncodeXML("مطلوب زيارة ميدانية ثانية - المتابعة"), Name: EncodeXML("مطلوب زيارة ميدانية ثانية - المتابعة") },
+                                { ID: EncodeXML("مطلوب إضافة قسيمة - قسم الخرائط"), Name: EncodeXML("مطلوب إضافة قسيمة - قسم الخرائط") },
+                                { ID: EncodeXML("تمت إضافة القسيمة - المتابعة"), Name: EncodeXML("تمت إضافة القسيمة - المتابعة") },
+                                { ID: EncodeXML("مرتجع من التدقيق"), Name: EncodeXML("مرتجع من التدقيق") },
+                                { ID: EncodeXML("للتدقيق - المراجعة"), Name: EncodeXML("للتدقيق - المراجعة") },
+                                { ID: EncodeXML("للتجهيز - التجهيز"), Name: EncodeXML("للتجهيز - التجهيز") },
+                                { ID: EncodeXML("مطلوب إعادة الإرسال - المتابعة"), Name: EncodeXML("مطلوب إعادة الإرسال - المتابعة") },
+                                { ID: EncodeXML("مطلوب مراجعة المرفقات - الشهادات"), Name: EncodeXML("مطلوب مراجعة المرفقات - الشهادات") },
+                                { ID: EncodeXML("مرتجع من التجهيز - المراجعة"), Name: EncodeXML("مرتجع من التجهيز - المراجعة") },
+                                { ID: EncodeXML("إنتهت المعاينة - القاطنين"), Name: EncodeXML("إنتهت المعاينة - القاطنين") },
+                                { ID: EncodeXML("الطلب ملغى"), Name: EncodeXML("الطلب ملغى") }
+                        ]
+                    },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetDailyPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "ActiveDailyPerformanceReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getClosedDailyJobsPerformance: function (aDateFrom, aDateTo) {
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [{ ID: EncodeXML("طلب منتهي"), Name: EncodeXML("طلب منتهي") }] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetDailyPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "ClosedDailyPerformanceReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getRejectedDailyJobsPeformance: function (aDateFrom, aDateTo) {
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: {
+                        LookupItem: [
+                            { ID: EncodeXML("مرتجع من التدقيق"), Name: EncodeXML("مرتجع من التدقيق") },
+                            { ID: EncodeXML("مرفوض - الشهادات"), Name: EncodeXML("مرفوض - الشهادات") },
+                            { ID: EncodeXML("مطلوب مراجعة المرفقات - الشهادات"), Name: EncodeXML("مطلوب مراجعة المرفقات - الشهادات") }
+                        ]
+                    },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetDailyPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "RejectedDailyPerformanceReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getEmployeesPerformance: function (aDateFrom, aDateTo) {
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetOfficeUsersPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "DayOfficeUsersPerformanceReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getAreasPerformance: function (aDateFrom, aDateTo) {
+
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetAreaPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "DayAreasPerformanceReport"
+                };
+                this.topareas = null;
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getJobCategoriesPerformance: function (aDateFrom, aDateTo) {
+
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetJobCategoryPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "DayJobCategoryPerformanceReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getJobCategoriesAveragePerformance: function (aDateFrom, aDateTo) {
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetJobCategoryAvgPerformanceReportSummary",
+                    filtercriteria: Criteria,
+                    reportid: "DayJobCategoryAvgPerformanceReportSummary"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getFieldResearchersPerformance: function (aDateFrom, aDateTo) {
+
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetFieldResearcherPerformanceReport",
+                    filtercriteria: Criteria,
+                    reportid: "DayFieldResearcherPerformanceReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getFieldResearchersLastLocation: function (aDateFrom, aDateTo) {
+                this.fieldresearcherslastlocation = null;
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetUsersTrackingLastActionReport",
+                    filtercriteria: Criteria,
+                    reportid: "GetUsersTrackingLastActionReport"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            getEmployeesDetailedPerformance: function (aDateFrom, aDateTo) {
+                var Criteria = {
+
+                    isdaterange: true,
+                    datefrom: aDateFrom,
+                    dateto: aDateTo,
+                    lastnumdays: 0,
+                    encodedselectedemployees: { LookupItem: [] },
+                    encodedselectedjobcategories: { LookupItem: [] },
+                    encodedselectedjobtypes: { LookupItem: [] },
+                    encodedselectedjobstatuses: { LookupItem: [] },
+                    encodedselectedareas: { LookupItem: [] }
+                };
+                var Report = {
+
+                    user: this.user,
+                    targetreportoperation: "GetOfficeUsersPerformanceDetailed",
+                    filtercriteria: Criteria,
+                    reportid: "DayOfficeUsersPerformanceDetailed"
+                };
+                this.$.reportDataGeneratorMainDashboard.getReportData(Report, this.resources);
+            },
+
+            updateRejectedJobsKPI: function () {
+
+                if (this.rejectedpercentagevaluescounter == 2) {
+
+                    this.totalpercentagerejectedjobstoday = parseInt(this.totalrejectedjobstoday) > 0 ? Math.round(parseFloat(this.totalrejectedjobstoday / this.totaljobstoday) * 100) + "%" : "0%";
+                }
+            },
+
+            clearCharts: function () {
+
+                for (var i = 0; i < this.charts.length; i++) {
+
+                    this.charts[i].destroy();
+                }
+
+                this.charts = [];
+            },
+
+            drawChart: function (aChart, aRenderToID) {
+
+                var Context = this;
+
+                var DivChart = this.$.ipMainDashboard.querySelectorAll("#" + aRenderToID)[0];
+
+                if (DivChart) {
+
+                    if (aChart.series.length == 0) {
+
+                        DivChart.innerHTML = "<iron-icon style='color: gray; margin-top: 20px; width: 50px; height: 50px' icon='icons:visibility-off'></iron-icon>";
+                        return;
+                    }
+
+                    var StyleDirection = (this.language == "ar" ? "style='direction:rtl'" : "");
+
+                    var Chart = new Highcharts.Chart({
+                        chart: {
+                            renderTo: DivChart,
+                            type: aChart.hightcharttype,
+                            options3d: aChart.option3d == true ? { enabled: true, alpha: 45 } : { enabled: false, alpha: 45 }
+                        },
+                        title: aChart.title,
+                        subtitle: aChart.subtitle,
+                        xAxis: aChart.hightcharttype == "pie" ? null : {
+                            categories: aChart.categories,
+                            gridLineColor: "#ededed",
+                            gridLineDashStyle: "Solid",
+                            gridLineWidth: 1,
+                            minorGridLineWidth: 0,
+                            gridZIndex: 1,
+                            reversed: this.language == "ar" ? true : false
+                        },
+                        yAxis: aChart.hightcharttype == "pie" ? null : {
+                            type: aChart.logarithmic ? "logarithmic" : "",
+                            minorTickInterval: 1,
+                            title: {
+                                text: aChart.yaxistitle
+                            },
+                            min: aChart.logarithmic ? 1 : 0,
+                            gridLineColor: "#ededed",
+                            gridLineDashStyle: "Solid",
+                            gridLineWidth: 1,
+                            minorGridLineWidth: 0,
+                            gridZIndex: 1,
+                            opposite: this.language == "ar" ? true : false,
+                            useHTML: Highcharts.hasBidiBug
+                        },
+                        tooltip: {
+                            headerFormat: "<div " + StyleDirection + "><span style=\"font-family: Roboto, Noto, sans-serif; font-size:14px; color: white;\">{point.key}</span><table>",
+                            pointFormat: aChart.hightcharttype == "pie" ? "{series.name} {point.percentage:.1f}%" : "<tr><td style=\"color:white;font-family: Roboto, Noto, sans-serif;\">{series.name}: </td>" + "<td style=\"font-family: Roboto, Noto, sans-serif; font-size:14px; color: white;\">{point.y:f}</td></tr>",
+                            footerFormat: "</table></div>",
+                            useHTML: true,
+                            backgroundColor: "#737373",
+                            borderRadius: 2,
+                            borderWidth: 0,
+                            shadow: false
+                        },
+                        credits: {
+                            enabled: false
+                        },
+                        legend: {
+                            enabled: false
+                        },
+                        plotOptions: {
+                            column: {
+                                stacking: aChart.stacked ? "normal" : "",
+                                showInLegend: false
+                            },
+                            pie: {
+                                innerSize: 100,
+                                depth: 45,
+                                allowPointSelect: true,
+                                cursor: "pointer",
+                                showInLegend: true
+                            }
+                        },
+                        series: aChart.series
+                    });
+
+                    this.charts.push(Chart);
+                }
+            },
+
+            drawGauge: function (aGauge, aRenderToID) {
+
+                var Context = this;
+
+                var divChart = this.$.ipMainDashboard.querySelector("#" + aRenderToID);
+
+                if (aGauge.PlotBands.length == 0) {
+
+                    DivChart.innerHTML = "<iron-icon style='color: gray; padding-top: 20px' icon='notification:do-not-disturb'></iron-icon>";
+                    return;
+                }
+
+                var GaugeOptions = {
+                    chart: {
+                        renderTo: divChart,
+                        type: "gauge",
+                        plotBackgroundColor: null,
+                        plotBackgroundImage: null,
+                        plotBorderWidth: 0,
+                        plotShadow: false
+                    },
+                    title: null,
+                    pane: {
+                        startAngle: -130,
+                        endAngle: 130,
+                        background: [{
+                            backgroundColor: "#fafafa",
+                            borderWidth: 0,
+                            outerRadius: "105%"
+                        }],
+                        size: "90%"
+                    },
+                    tooltip: {
+                        enabled: false
+                    },
+                    yAxis: {
+                        min: 0,
+                        max: 10,
+                        minorTickInterval: "auto",
+                        minorTickWidth: 1,
+                        minorTickLength: 10,
+                        minorTickPosition: "outside",
+                        minorTickColor: "#666",
+                        tickPixelInterval: 30,
+                        tickWidth: 2,
+                        tickPosition: "inside",
+                        tickLength: 10,
+                        tickColor: "#666",
+                        labels: {
+                            step: 2,
+                            rotation: "auto"
+                        },
+                        plotBands: aGauge.PlotBands
+                    },
+                    plotOptions: {
+                        gauge: {
+                            dataLabels: {
+                                y: 0,
+                                borderWidth: 0,
+                                useHTML: true
+                            }
+                        }
+                    },
+                    credits: {
+                        enabled: false
+                    }
+                };
+
+                var Chart = new Highcharts.Chart(Highcharts.merge(GaugeOptions, {
+                    yAxis: {
+                        title: { text: aGauge.Title, style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "16px;" } }
+                    },
+                    series: [{
+                        name: aGauge.Name,
+                        data: [parseFloat(aGauge.Average)],
+                        dataLabels: {
+                            format: '<div style="text-align:center"><span style="font-family: Roboto, Noto, sans-serif; font-size:24px;color:' +
+                                ((Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black') + '">{y:.1f}</span><br/>' +
+                                   '<span style="font-family: Roboto, Noto, sans-serif; font-size:12px;color:gray">' + this.resources.day + '</span></div>'
+                        }
+                    }]
+                }));
+
+                this.charts.push(Chart);
+            },
+
+            handleUserProfileLocalStorageLoad: function () {
+
+                this.initializeSOAP();
+
+                if (this.resources && this.user && !this.dashboardrefreshed) {
+
+                    this.dashboardrefreshed = true;
+                    this.refreshDashboard();
+                }
+            },
+
+            handleToolbarMenuClick: function () {
+
+                this.fire("menu-clicked", null);
+            },
+
+            handlePaperTabClick: function (aEvent) {
+
+                this.$.reportDataGeneratorMainDashboard.cancelReports();
+
+                if (aEvent.currentTarget.id == "ptAllTimesDashboard") {
+
+                    this.selectedview = this.alltimesview;
+                }
+                else if (aEvent.currentTarget.id == "ptTodayDashboard") {
+
+                    this.selectedview = -1;
+                    this.selectedview = this.dayview;
+                }
+                else if (aEvent.currentTarget.id == "ptYesterdayDashboard") {
+
+                    this.selectedview = -2;
+                    this.selectedview = this.dayview;
+                }
+                else if (aEvent.currentTarget.id == "ptLast30DaysDashboard") {
+
+                    this.selectedview = -3;
+                    this.selectedview = this.dayview;
+                }
+
+            },
+
+            handleReportDataGeneratorSuccess: function (aEvent) {
+
+                var Categories = [];
+                var Series = [];
+
+                if (aEvent.detail.Report.targetreportoperation == "GetJobCategoryPerformanceReport") {
+
+                    var SeriesColor;
+
+                    if (aEvent.detail.Report.reportid == "AllJobCategoryPerformance") {
+
+                        SeriesColor = "lightcoral";
+                    }
+
+                    else if (aEvent.detail.Report.reportid == "ActiveJobCategoryPerformance") {
+
+                        SeriesColor = "#86e089";
+                    }
+
+                    else if (aEvent.detail.Report.reportid == "ClosedJobCategoryPerformance") {
+
+                        SeriesColor = "gray";
+                    }
+
+                    else if (aEvent.detail.Report.reportid == "DayJobCategoryPerformanceReport") {
+
+                        var ChartTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "20px;" } };
+                        var ChartSubTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "16px;" } };
+
+                        for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aEvent.detail.DataSource[i].JobCategoryName) < 0) {
+
+                                Categories.push(aEvent.detail.DataSource[i].JobCategoryName);
+                            }
+                        }
+
+                        for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [{ y: parseInt(aEvent.detail.DataSource[i].JobsCount), color: "rgb(207, 216, 220)" }]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push({ y: parseInt(aEvent.detail.DataSource[i].JobsCount), color: "rgb(207, 216, 220)" });
+                            }
+                        }
+
+                        var aChart = new Object();
+                        aChart.hightcharttype = "column";
+                        aChart.stacked = false;
+                        aChart.title = ChartTitle;
+                        aChart.subtitle = ChartSubTitle;
+                        aChart.yaxistitle = this.resources.clntotaljobs;
+                        aChart.categories = Categories;
+                        aChart.series = Series;
+
+                        this.drawChart(aChart, "divDayJobCategoriesPerformanceChart");
+                    }
+
+                    for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                        if (i == 0) {
+
+                            Series.push({
+                                name: this.resources.clntotaljobs,
+                                data: [{ name: aEvent.detail.DataSource[i].JobCategoryName, y: parseInt(aEvent.detail.DataSource[i].JobsCount), color: SeriesColor }]
+                            });
+
+                        }
+                        else {
+
+                            Series[0].data.push({ name: aEvent.detail.DataSource[i].JobCategoryName, y: parseInt(aEvent.detail.DataSource[i].JobsCount), color: SeriesColor });
+                        }
+                    }
+
+                    var aChart = new Object();
+                    aChart.hightcharttype = "column";
+                    aChart.stacked = false;
+                    aChart.logarithmic = true;
+                    aChart.title = { text: "" };
+                    aChart.subtitle = { text: "" };
+                    aChart.yaxistitle = "";
+                    aChart.categories = Categories;
+                    aChart.series = Series;
+
+                    this.drawChart(aChart, "div" + aEvent.detail.Report.reportid + "Chart");
+                }
+
+                else if (aEvent.detail.Report.targetreportoperation == "GetDailyPerformanceReport") {
+
+                    if (aEvent.detail.Report.reportid == "AllDailyPerformanceReport") {
+
+                        this.toggleClass("loading", false, this.$.pcTotalJobsDay);
+
+                        if (aEvent.detail.DataSource.length == 0) {
+
+                            this.totaljobstoday = 0;
+                        }
+
+                        else {
+
+                            var JobsCount = 0;
+
+                            for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                                JobsCount += parseInt(aEvent.detail.DataSource[i].JobsCount);
+                            }
+
+                            this.totaljobstoday = JobsCount;
+                        }
+
+                        this.rejectedpercentagevaluescounter += 1;
+                        this.updateRejectedJobsKPI();
+                    }
+
+                    if (aEvent.detail.Report.reportid == "ActiveDailyPerformanceReport") {
+
+                        this.toggleClass("loading", false, this.$.pcTotalActiveJobsDay);
+
+                        if (aEvent.detail.DataSource.length == 0) {
+
+                            this.totalactivejobstoday = 0;
+                        }
+
+                        else {
+
+                            var JobsCount = 0;
+
+                            for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                                JobsCount += parseInt(aEvent.detail.DataSource[i].JobsCount);
+                            }
+
+                            this.totalactivejobstoday = JobsCount;
+                        }
+                    }
+
+                    else if (aEvent.detail.Report.reportid == "ClosedDailyPerformanceReport") {
+
+                        this.toggleClass("loading", false, this.$.pcTotalClosedJobsDay);
+
+                        if (aEvent.detail.DataSource.length == 0) {
+
+                            this.totalclosedjobstoday = 0;
+                        }
+
+                        else {
+
+                            var JobsCount = 0;
+
+                            for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                                JobsCount += parseInt(aEvent.detail.DataSource[i].JobsCount);
+                            }
+
+                            this.totalclosedjobstoday = JobsCount;
+                        }
+                    }
+
+                    else if (aEvent.detail.Report.reportid == "RejectedDailyPerformanceReport") {
+
+                        this.toggleClass("loading", false, this.$.pcTotalRejectedJobsDay);
+
+                        if (aEvent.detail.DataSource.length == 0) {
+
+                            this.totalrejectedjobstoday = 0;
+                        }
+
+                        else {
+
+                            var JobsCount = 0;
+
+                            for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                                JobsCount += parseInt(aEvent.detail.DataSource[i].JobsCount);
+                            }
+
+                            this.totalrejectedjobstoday = JobsCount;
+                        }
+
+                        this.rejectedpercentagevaluescounter += 1;
+                        this.updateRejectedJobsKPI();
+                    }
+                }
+
+                else if (aEvent.detail.Report.targetreportoperation == "GetOfficeUsersPerformanceReport") {
+
+                    if (aEvent.detail.Report.reportid == "DayOfficeUsersPerformanceReport") {
+
+                        var ChartTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "20px;" } };
+                        var ChartSubTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "16px;" } };
+
+                        var TopFiveOfficeUsers = aEvent.detail.DataSource.sort(function (a, b) {
+
+                            return parseInt(b.JobsCount) - parseInt(a.JobsCount);
+                        });
+                        TopFiveOfficeUsers = TopFiveOfficeUsers.slice(0, 5);
+
+                        for (var i = 0; i < TopFiveOfficeUsers.length; i++) {
+
+                            if (Categories.indexOf(TopFiveOfficeUsers[i].UserFullName) < 0) {
+
+                                Categories.push(TopFiveOfficeUsers[i].UserFullName);
+                            }
+                        }
+
+                        for (var i = 0; i < TopFiveOfficeUsers.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [parseInt(TopFiveOfficeUsers[i].JobsCount)]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push(parseInt(TopFiveOfficeUsers[i].JobsCount));
+                            }
+                        }
+
+                        var aChart = new Object();
+                        aChart.hightcharttype = "column";
+                        aChart.stacked = false;
+                        aChart.title = ChartTitle;
+                        aChart.subtitle = ChartSubTitle;
+                        aChart.yaxistitle = this.resources.clntotaljobs;
+                        aChart.categories = Categories;
+                        aChart.series = Series;
+
+                        this.drawChart(aChart, "divDayCreatorsPerformanceChart");
+                    }
+                }
+
+                else if (aEvent.detail.Report.targetreportoperation == "GetAreaPerformanceReport") {
+
+                    if (aEvent.detail.Report.reportid == "DayAreasPerformanceReport") {
+
+                        var ChartTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "20px;" } };
+                        var ChartSubTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "16px;" } };
+
+                        var TopFiveAreas = aEvent.detail.DataSource.sort(function (a, b) {
+
+                            return parseInt(b.JobsCount) - parseInt(a.JobsCount);
+                        });
+                        this.topareas = TopFiveAreas;
+
+                        TopFiveAreas = TopFiveAreas.slice(0, 5);
+
+                        for (var i = 0; i < TopFiveAreas.length; i++) {
+
+                            if (Categories.indexOf(TopFiveAreas[i].AreaName) < 0) {
+
+                                Categories.push(TopFiveAreas[i].AreaName);
+                            }
+                        }
+
+                        for (var i = 0; i < TopFiveAreas.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [{ y: parseInt(TopFiveAreas[i].JobsCount), color: "rgb(255, 183, 77)" }]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push({ y: parseInt(TopFiveAreas[i].JobsCount), color: "rgb(255, 183, 77)" });
+                            }
+                        }
+
+                        var aChart = new Object();
+                        aChart.hightcharttype = "column";
+                        aChart.stacked = false;
+                        aChart.title = ChartTitle;
+                        aChart.subtitle = ChartSubTitle;
+                        aChart.yaxistitle = this.resources.clntotaljobs;
+                        aChart.categories = Categories;
+                        aChart.series = Series;
+
+                        this.drawChart(aChart, "divDayAreasPerformanceChart");
+                    }
+                }
+
+                else if (aEvent.detail.Report.targetreportoperation == "GetFieldResearcherPerformanceReport") {
+
+                    if (aEvent.detail.Report.reportid == "DayFieldResearcherPerformanceReport") {
+
+                        var ChartTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "20px;" } };
+                        var ChartSubTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "16px;" } };
+
+                        var TopFiveAreas = aEvent.detail.DataSource.sort(function (a, b) {
+
+                            return parseInt(b.JobsCount) - parseInt(a.JobsCount);
+                        });
+                        TopFiveAreas = TopFiveAreas.slice(0, 5);
+
+                        for (var i = 0; i < TopFiveAreas.length; i++) {
+
+                            if (Categories.indexOf(TopFiveAreas[i].FieldResearcher) < 0) {
+
+                                Categories.push(TopFiveAreas[i].FieldResearcher);
+                            }
+                        }
+
+                        for (var i = 0; i < TopFiveAreas.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: this.resources.clntotaljobs,
+                                    data: [{ y: parseInt(TopFiveAreas[i].JobsCount), color: "#BD624D" }]
+                                });
+
+                            }
+                            else {
+
+                                Series[0].data.push({ y: parseInt(TopFiveAreas[i].JobsCount), color: "#BD624D" });
+                            }
+                        }
+
+                        var aChart = new Object();
+                        aChart.hightcharttype = "column";
+                        aChart.stacked = false;
+                        aChart.title = ChartTitle;
+                        aChart.subtitle = ChartSubTitle;
+                        aChart.yaxistitle = this.resources.clntotaljobs;
+                        aChart.categories = Categories;
+                        aChart.series = Series;
+
+                        this.drawChart(aChart, "divDayFieldResearchersPerformanceChart");
+                    }
+                }
+
+                else if (aEvent.detail.Report.targetreportoperation == "GetJobCategoryAvgPerformanceReportSummary") {
+
+                    if (aEvent.detail.Report.reportid == "DayJobCategoryAvgPerformanceReportSummary") {
+
+                        for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                            if (aEvent.detail.DataSource[i].JobCategoryName.trim() == "الجهات" && aEvent.detail.DataSource[i].TypeID == 0) {
+
+                                var Gauge = new Object();
+                                Gauge.Minimum = 0.0;
+                                Gauge.Maximum = 10.0;
+                                Gauge.Average = aEvent.detail.DataSource[i].JobAvg;
+                                Gauge.Title = "";
+                                Gauge.Name = "Establishments";
+                                Gauge.PlotBands = [{
+                                    from: 0,
+                                    to: 2.5,
+                                    color: "#55BF3B",
+                                    innerRadius: 50
+                                }, {
+                                    from: 2.5,
+                                    to: 3,
+                                    color: "#DDDF0D",
+                                    innerRadius: 50
+                                }, {
+                                    from: 3,
+                                    to: 10,
+                                    color: "#DF5353",
+                                    innerRadius: 50
+                                }]
+
+                                this.drawGauge(Gauge, "divDayJobCategoryEstablishmentsAveragePerformanceGauge");
+                            }
+                            else if (aEvent.detail.DataSource[i].JobCategoryName.trim() == "العناوين" && aEvent.detail.DataSource[i].TypeID == 0) {
+
+                                var Gauge = new Object();
+                                Gauge.Minimum = 0.0;
+                                Gauge.Maximum = 10.0;
+                                Gauge.Average = aEvent.detail.DataSource[i].JobAvg;
+                                Gauge.Title = "";
+                                Gauge.Name = "Addresses";
+                                Gauge.PlotBands = [{
+                                    from: 0,
+                                    to: 3,
+                                    color: "#55BF3B",
+                                    innerRadius: 50
+                                }, {
+                                    from: 3,
+                                    to: 5,
+                                    color: "#DDDF0D",
+                                    innerRadius: 50
+                                }, {
+                                    from: 5,
+                                    to: 10,
+                                    color: "#DF5353",
+                                    innerRadius: 50
+                                }]
+
+                                this.drawGauge(Gauge, "divDayJobCategoryAddressesAveragePerformanceGauge");
+                            }
+                            else if (aEvent.detail.DataSource[i].JobCategoryName.trim() == "تجديد الإطار" && aEvent.detail.DataSource[i].TypeID == 0) {
+
+                                var Gauge = new Object();
+                                Gauge.Minimum = 0.0;
+                                Gauge.Maximum = 10.0;
+                                Gauge.Average = aEvent.detail.DataSource[i].JobAvg;
+                                Gauge.Title = "";
+                                Gauge.Name = "BoundaryUpdate";
+                                Gauge.PlotBands = [{
+                                    from: 0,
+                                    to: 3,
+                                    color: "#55BF3B",
+                                    innerRadius: 50
+                                }, {
+                                    from: 3,
+                                    to: 5,
+                                    color: "#DDDF0D",
+                                    innerRadius: 50
+                                }, {
+                                    from: 5,
+                                    to: 10,
+                                    color: "#DF5353",
+                                    innerRadius: 50
+                                }]
+
+                                this.drawGauge(Gauge, "divDayJobCategoryBoundaryUpdateAveragePerformanceGauge");
+                            }
+                            else if (aEvent.detail.DataSource[i].JobCategoryName.trim() == "القاطنين" && aEvent.detail.DataSource[i].TypeID == 0) {
+
+                                var Gauge = new Object();
+                                Gauge.Minimum = 0.0;
+                                Gauge.Maximum = 10.0;
+                                Gauge.Average = aEvent.detail.DataSource[i].JobAvg;
+                                Gauge.Title = "";
+                                Gauge.Name = "Residences";
+                                Gauge.PlotBands = [{
+                                    from: 0,
+                                    to: 3,
+                                    color: "#55BF3B",
+                                    innerRadius: 50
+                                }, {
+                                    from: 3,
+                                    to: 5,
+                                    color: "#DDDF0D",
+                                    innerRadius: 50
+                                }, {
+                                    from: 5,
+                                    to: 10,
+                                    color: "#DF5353",
+                                    innerRadius: 50
+                                }]
+
+                                this.drawGauge(Gauge, "divDayJobCategoryResidencesAveragePerformanceGauge");
+                            }
+                        }
+                    }
+                }
+
+                else if (aEvent.detail.Report.targetreportoperation == "GetOfficeUsersPerformanceDetailed") {
+
+                    if (aEvent.detail.Report.reportid == "DayOfficeUsersPerformanceDetailed") {
+
+                        var ChartTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "20px;" } };
+                        var ChartSubTitle = { text: "", style: { "fontFamily": "Roboto, Noto, sans-serif", "fontSize": "16px;" } };
+
+                        var TopFiveEmployees = [];
+
+                        for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                TopFiveEmployees.push({
+                                    UserFullName: aEvent.detail.DataSource[i].UserFullName,
+                                    JobsCount: [parseInt(aEvent.detail.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < TopFiveEmployees.length; j++) {
+
+                                    if (TopFiveEmployees[j].UserFullName.toUpperCase() == aEvent.detail.DataSource[i].UserFullName.toUpperCase()) {
+
+                                        TopFiveEmployees[j].JobsCount = (parseInt(TopFiveEmployees[j].JobsCount) + parseInt(aEvent.detail.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    TopFiveEmployees.push({
+                                        UserFullName: aEvent.detail.DataSource[i].UserFullName,
+                                        JobsCount: [parseInt(aEvent.detail.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        TopFiveEmployees = TopFiveEmployees.sort(function (a, b) {
+
+                            return parseInt(b.JobsCount) - parseInt(a.JobsCount);
+                        });
+
+                        TopFiveEmployees = TopFiveEmployees.slice(0, 5);
+
+                        function ApplyFilter(aPassedArray, aPassedFilter) {
+
+                            var filteredArray = aPassedArray.filter(
+
+                            function (el) {
+                                for (var i = 0; i < aPassedFilter.length; i++) {
+                                    if (el.UserFullName == aPassedFilter[i].UserFullName) {
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            });
+
+                            return filteredArray;
+                        }
+
+                        aEvent.detail.DataSource = ApplyFilter(aEvent.detail.DataSource, TopFiveEmployees);
+
+                        for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                            if (Categories.indexOf(aEvent.detail.DataSource[i].UserFullName) < 0) {
+
+                                Categories.push(aEvent.detail.DataSource[i].UserFullName);
+                            }
+                        }
+
+                        for (var i = 0; i < aEvent.detail.DataSource.length; i++) {
+
+                            if (i == 0) {
+
+                                Series.push({
+                                    name: aEvent.detail.DataSource[i].JobAction,
+                                    data: [parseInt(aEvent.detail.DataSource[i].JobsCount)]
+                                });
+                            }
+                            else {
+
+                                var IsReportItemAddedToSeries = false;
+
+                                for (var j = 0; j < Series.length; j++) {
+
+                                    if (Series[j].name.toUpperCase() == aEvent.detail.DataSource[i].JobAction.toUpperCase()) {
+
+                                        Series[j].data.push(parseInt(aEvent.detail.DataSource[i].JobsCount));
+                                        IsReportItemAddedToSeries = true;
+                                    }
+                                }
+
+                                if (!IsReportItemAddedToSeries) {
+
+                                    Series.push({
+                                        name: aEvent.detail.DataSource[i].JobAction,
+                                        data: [parseInt(aEvent.detail.DataSource[i].JobsCount)]
+                                    });
+                                }
+                            }
+                        }
+
+                        var aChart = new Object();
+                        aChart.hightcharttype = "column";
+                        aChart.stacked = true;
+                        aChart.title = ChartTitle;
+                        aChart.subtitle = ChartSubTitle;
+                        aChart.yaxistitle = this.resources.totaljobactions;
+                        aChart.categories = Categories;
+                        aChart.series = Series;
+
+                        this.drawChart(aChart, "divDayOfficeUsersPerformanceDetailedPerformanceChart");
+                    }
+                }
+
+                else if (aEvent.detail.Report.targetreportoperation == "GetUsersTrackingLastActionReport") {
+
+                    if (aEvent.detail.Report.reportid == "GetUsersTrackingLastActionReport") {
+
+                        this.fieldresearcherslastlocation = aEvent.detail.DataSource;
+                        this.fieldresearcherslocationsloaded = true;
+                    }
+                }
+            },
+
+            handleNeighborhoodsLookupLoad: function () {
+
+                this.neighborhoodsloaded = true;
+            },
+
+            handleESRIMapLoad: function (aEvent) {
+
+                if (aEvent.currentTarget.id == "esriMapAllTimeTopArea") {
+
+                    this.topareamaploaded = true;
+                }
+                else if (aEvent.currentTarget.id == "esriMapDayTopArea") {
+
+                    this.topareasmaploaded = true;
+                }
+            },
+
+            showRefreshFabButton: function (aHidden) {
+
+                if (aHidden == true && this.$.pfMainDashboardRefresh.hidden == true)
+                    this.playAnimation("entry");
+
+                this.$.pfMainDashboardRefresh.hidden = !aHidden;
+            },
+
+            ZoomToAllTimeTopArea: function (aNeighborhoodsLoaded, aTopAreaMapLoaded, TopArea) {
+
+                var Context = this;
+
+                if (aNeighborhoodsLoaded == true && aTopAreaMapLoaded == true && TopArea) {
+
+                    this.$.esriMapAllTimeTopArea.hideRendererControls();
+                    this.$.esriMapAllTimeTopArea.hideFieldResearchersControls();
+
+                    var FoundAreas = this.$.neighborhoodsLookup.getAreaInfoByName(TopArea);
+
+                    if (FoundAreas.length == 1) {
+
+                        var Locations = [];
+                        Locations.push({ x: FoundAreas[0].X, y: FoundAreas[0].Y, AreaNameArabic: FoundAreas[0].AreaNameArabic, AreaNameEnglish: FoundAreas[0].AreaNameEnglish });
+
+                        if (ESRIExtraModules.Loaded) {
+
+                            this.$.esriMapAllTimeTopArea.zoomToLocations(Locations);
+                            this.$.esriMapAllTimeTopArea.selectLocations(Locations);
+                        }
+                        else {
+
+                            setTimeout(function () { Context.ZoomToAllTimeTopArea(aNeighborhoodsLoaded, aTopAreaMapLoaded, TopArea); }, 1000);
+                        }
+                    }
+                    else if (FoundAreas.length == 0) {
+
+                        this.fire("iron-signal", { name: "nodatafoundonmap", data: this.resources.nodatafoundonmap });
+                    }
+                }
+            },
+
+            ZoomAndClassBreakDayTopAreas: function (aNeighborhoodsLoaded, aTopAreaMapLoaded, TopAreas) {
+
+                var Context = this;
+
+                if (aNeighborhoodsLoaded == true && aTopAreaMapLoaded == true && TopAreas) {
+
+                    this.$.esriMapDayTopArea.hideRendererControls();
+
+                    var Locations = [];
+
+                    for (var i = 0; i < TopAreas.length; i++) {
+
+                        var FoundArea = this.$.neighborhoodsLookup.getAreaInfoByName(TopAreas[i].AreaName);
+
+                        if (FoundArea.length == 1) {
+
+                            Locations.push({ ID: FoundArea[0].ID, x: FoundArea[0].X, y: FoundArea[0].Y, AreaNameArabic: FoundArea[0].AreaNameArabic, AreaNameEnglish: FoundArea[0].AreaNameEnglish, JobsCount: TopAreas[i].JobsCount });
+                        }
+                    }
+
+                    if (TopAreas.length > 0) {
+
+                        var MaxValue = TopAreas[0].JobsCount;
+                        var MinValue = TopAreas[TopAreas.length - 1].JobsCount;
+
+                        if (ESRIExtraModules.Loaded) {
+
+                            this.$.esriMapDayTopArea.zoomToLocations(Locations);
+                            this.$.esriMapDayTopArea.classBreakLocations(Locations, MaxValue, MinValue);
+                            this.$.esriMapDayTopArea.blendLocations(Locations, MaxValue, MinValue);
+                        }
+                        else {
+
+                            setTimeout(function () { Context.ZoomAndClassBreakDayTopAreas(aNeighborhoodsLoaded, aTopAreaMapLoaded, TopAreas); }, 1000);
+                        }
+                    }
+                }
+            },
+
+            ShowFieldResearchersOnMap: function (aTopAreaMapLoaded, aFieldResearchersLocationLoaded) {
+
+                this.$.esriMapDayTopArea.hideFieldResearchersControls();
+
+                if (aTopAreaMapLoaded == true && aFieldResearchersLocationLoaded) {
+
+                    this.$.esriMapDayTopArea.renderFieldResearchers(this.fieldresearcherslastlocation);
+                }
+                else {
+
+                    this.$.esriMapDayTopArea.clearFieldResearchers();
+                }
+            }
+
+        });
+
+    </script>
+
+</dom-module>

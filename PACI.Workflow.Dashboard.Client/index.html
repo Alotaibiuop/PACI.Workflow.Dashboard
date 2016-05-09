@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+    <title>PACI Workflow Dashboard</title>
+
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height">
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="PACI Dashboard">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="PACI Dashboard">
+
+    <script type="text/javascript">
+
+        function isIE() {
+
+            var UserAgent = navigator.userAgent.toLowerCase();
+            return (UserAgent.indexOf('msie') != -1) ? parseInt(UserAgent.split('msie')[1]) : false;
+        }
+
+        if (isIE() && isIE() < 11) {
+
+            window.location = "incompatiblebrowser.html"
+        }
+
+    </script>
+
+    <script>
+
+        if ('registerElement' in document
+         && 'createShadowRoot' in HTMLElement.prototype
+         && 'import' in document.createElement('link')
+         && 'content' in document.createElement('template')) {
+            (function () {
+                function ready() {
+                    setTimeout(function () {
+                        document.dispatchEvent(new CustomEvent('WebComponentsReady', {
+                            bubbles: true
+                        }));
+                    });
+                }
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    ready();
+                } else {
+                    window.addEventListener('DOMContentLoaded', ready);
+                }
+            })();
+        } else {
+            document.write('<script src="bower_components/webcomponentsjs/webcomponents-lite.min.js"><\/script>');
+        }
+
+    </script>
+
+    <link rel="import" href="bower_components/polymer/polymer.html" />
+
+    <script type="text/javascript" src="bower_components/fastclick/lib/fastclick.js"></script>
+    <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="bower_components/jquerysoap/jquery.soap.js"></script>
+    <script type="text/javascript" src="bower_components/jquery.xml2json/src/jquery.xml2json.js"></script>
+    <script type="text/javascript" src="scripts/Configuration.js"></script>
+
+    <style>
+        body, html {
+            height: 100%;
+            width: 100%;
+            margin: 0px;
+            background-color: #3F51B5;
+        }
+
+        #skeleton {
+            position: absolute;
+            font-family: Roboto, Noto, sans-serif;
+            color: white;
+            top: 50%;
+            left: 50%;
+            margin-top: -50px;
+            margin-left: -60px;
+        }
+
+        .loader {
+                margin: 60px auto;
+                font-size: 10px;
+                position: relative;
+                text-indent: -9999em;
+                border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+                border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+                border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+                border-left: 1.1em solid #ffffff;
+                -webkit-transform: translateZ(0);
+                -ms-transform: translateZ(0);
+                transform: translateZ(0);
+                -webkit-animation: load8 1.1s infinite linear;
+                animation: load8 1.1s infinite linear;
+            }
+
+                .loader,
+                .loader:after {
+                    border-radius: 50%;
+                    width: 10em;
+                    height: 10em;
+                }
+
+            @-webkit-keyframes load8 {
+                0% {
+                    -webkit-transform: rotate(0deg);
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    -webkit-transform: rotate(360deg);
+                    transform: rotate(360deg);
+                }
+            }
+
+            @keyframes load8 {
+                0% {
+                    -webkit-transform: rotate(0deg);
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    -webkit-transform: rotate(360deg);
+                    transform: rotate(360deg);
+                }
+            }
+    </style>
+
+</head>
+<body>
+
+    <div id="skeleton" class="loader"></div>
+
+    <dom-module id="index-page">
+
+        <template>
+
+            <login-form id="loginForm" on-login-succeeded="handleLoginSuccess"></login-form>
+
+        </template>
+
+        <script>
+
+            window.addEventListener("WebComponentsReady", function () {
+
+                Polymer({
+
+                    is: "index-page",
+
+                    attached: function () {
+
+                        this.importHref('custom_components/login-form/login-form.html', function (e) {
+
+                        }, function (e) {
+
+                        });
+                    },
+
+                    handleLoginSuccess: function () {
+
+                        window.location = "dashboard.html"
+                    }
+
+                });
+
+            });
+
+        </script>
+
+    </dom-module>
+
+    <index-page>
+
+    </index-page>
+
+    <script type="text/javascript">
+
+        window.addEventListener('WebComponentsReady', function (e) {
+
+            $("#skeleton").hide();
+        });
+
+    </script>
+
+</body>
+</html>
